@@ -2,6 +2,7 @@ mod commands;
 mod tray;
 
 use tauri::Emitter;
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{
     Builder as ShortcutBuilder, Code, GlobalShortcutExt, Shortcut, ShortcutState,
 };
@@ -28,6 +29,10 @@ pub fn run() {
         .plugin(global_shortcut)
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--autostarted"]),
+        ))
         .setup(move |app| {
             // Register the F1 hotkey (no modifiers).
             app.global_shortcut()
@@ -41,6 +46,8 @@ pub fn run() {
             commands::screenshot::capture_screen,
             commands::clipboard::copy_image_to_clipboard,
             commands::save::save_image,
+            commands::autostart::get_autostart,
+            commands::autostart::set_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

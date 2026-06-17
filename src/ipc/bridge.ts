@@ -16,6 +16,16 @@ export async function saveImage(dataUrl: string, path: string, format: "png" | "
   await invoke("save_image", { dataUrl, path, format });
 }
 
+// ---- Autostart ----
+
+export async function getAutostart(): Promise<boolean> {
+  return invoke<boolean>("get_autostart");
+}
+
+export async function setAutostart(enabled: boolean): Promise<void> {
+  await invoke("set_autostart", { enabled });
+}
+
 // ---- Events ----
 
 export function onScreenshotTriggered(cb: () => void): Promise<UnlistenFn> {
