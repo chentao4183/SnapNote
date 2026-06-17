@@ -5,6 +5,7 @@ import EditorStage from "../canvas/EditorStage";
 import Toolbar from "../components/Toolbar";
 import TextInputOverlay from "../components/TextInputOverlay";
 import { useActiveTool } from "../tools";
+import { useSelectionTool } from "../tools/useSelectionTool";
 
 interface LoadPayload {
   x: number;
@@ -17,6 +18,7 @@ interface LoadPayload {
 export default function EditorWindow() {
   const init = useEditorStore((s) => s.init);
   const active = useActiveTool();
+  const selection = useSelectionTool();
 
   useEffect(() => {
     const unlisten = listen<LoadPayload>("editor-load", (event) => {
@@ -40,7 +42,7 @@ export default function EditorWindow() {
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", background: "#1a1a2e" }}>
-      <EditorStage />
+      <EditorStage onEditText={selection.beginEditText} />
       <Toolbar />
       {active.kind === "smart" && active.smart.isEnteringText && active.smart.textPos && (
         <TextInputOverlay
@@ -58,6 +60,15 @@ export default function EditorWindow() {
           initial=""
           onSubmit={active.text.submit}
           onCancel={active.text.cancel}
+        />
+      )}
+      {selection.editing && (
+        <TextInputOverlay
+          x={selection.editing.x}
+          y={selection.editing.y - 28}
+          initial={selection.editing.initial}
+          onSubmit={selection.commitEditText}
+          onCancel={selection.cancelEdit}
         />
       )}
     </div>

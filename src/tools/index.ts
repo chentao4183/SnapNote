@@ -20,6 +20,8 @@ export function useActiveTool() {
   const mosaic = useMosaicTool();
 
   switch (tool) {
+    case "select":
+      return { kind: "select" as const };
     case "smart":
       return { kind: "smart" as const, smart };
     case "rect":

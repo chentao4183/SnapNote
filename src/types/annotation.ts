@@ -1,4 +1,4 @@
-export type ToolType = "smart" | "rect" | "arrow" | "text" | "mosaic";
+export type ToolType = "select" | "smart" | "rect" | "arrow" | "text" | "mosaic";
 
 export type Corner = "tl" | "tr" | "bl" | "br";
 

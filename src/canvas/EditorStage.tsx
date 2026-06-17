@@ -4,8 +4,13 @@ import { useEditorStore } from "../store/editorStore";
 import AnnotationLayer from "./layers/AnnotationLayer";
 import { useActiveTool } from "../tools";
 import { cornerPoint } from "../geometry/corners";
+import type { Annotation } from "../types/annotation";
 
-export default function EditorStage() {
+interface Props {
+  onEditText?: (a: Annotation, x: number, y: number) => void;
+}
+
+export default function EditorStage({ onEditText }: Props) {
   const bg = useEditorStore((s) => s.backgroundImage);
   const rect = useEditorStore((s) => s.selectionRect);
   const [image] = useImage(bg);
@@ -30,7 +35,7 @@ export default function EditorStage() {
       <Layer>
         <KonvaImage image={image} x={rect.x} y={rect.y} width={rect.width} height={rect.height} />
       </Layer>
-      <AnnotationLayer />
+      <AnnotationLayer selectable={active.kind === "select"} onEditText={onEditText} />
       {/* Preview layer for in-progress annotations */}
       <Layer listening={false}>
         {active.kind === "smart" && active.smart.previewRect && (
