@@ -6,6 +6,8 @@ import Toolbar from "../components/Toolbar";
 import TextInputOverlay from "../components/TextInputOverlay";
 import { useActiveTool } from "../tools";
 import { useSelectionTool } from "../tools/useSelectionTool";
+import { useEditorShortcuts } from "../tools/useEditorShortcuts";
+import { hideCurrentWindow } from "../ipc/bridge";
 
 interface LoadPayload {
   x: number;
@@ -19,6 +21,7 @@ export default function EditorWindow() {
   const init = useEditorStore((s) => s.init);
   const active = useActiveTool();
   const selection = useSelectionTool();
+  useEditorShortcuts({ onExit: () => hideCurrentWindow() });
 
   useEffect(() => {
     const unlisten = listen<LoadPayload>("editor-load", (event) => {

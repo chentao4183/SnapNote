@@ -15,8 +15,6 @@ import type { Annotation } from "../types/annotation";
 export function useSelectionTool() {
   const selectedId = useEditorStore((s) => s.selectedId);
   const removeAnnotation = useEditorStore((s) => s.removeAnnotation);
-  const undo = useEditorStore((s) => s.undo);
-  const redo = useEditorStore((s) => s.redo);
   const [editing, setEditing] = useState<{ id: string; x: number; y: number; initial: string } | null>(null);
 
   useEffect(() => {
@@ -29,17 +27,13 @@ export function useSelectionTool() {
         if (selectedId) {
           removeAnnotation(selectedId);
         }
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
       } else if (e.key === "Escape") {
         setEditing(null);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, removeAnnotation, undo, redo]);
+  }, [selectedId, removeAnnotation]);
 
   function beginEditText(a: Annotation, anchorScreenX: number, anchorScreenY: number) {
     setEditing({ id: a.id, x: anchorScreenX, y: anchorScreenY, initial: a.note || "" });
