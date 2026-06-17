@@ -16,37 +16,44 @@ export default function SelectorWindow() {
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [mode, setMode] = useState<Mode>("selecting");
+  // Mirror mode into a ref so the window-level event listeners (subscribed once)
+  // always read the latest value without needing to re-subscribe on every change.
+  // Re-subscribing on mode change was re-running recapture() and wiping the edit.
+  const modeRef = useRef<Mode>("selecting");
+  const setModeSync = (m: Mode) => {
+    modeRef.current = m;
+    setMode(m);
+  };
 
   const [image] = useImage(bg);
   const initEditor = useEditorStore((s) => s.init);
   const setTool = useEditorStore((s) => s.setTool);
 
-  // (Re)capture the screen whenever the selector becomes visible — but ONLY in
-  // selecting mode, so a focus blip mid-edit never wipes the canvas.
+  // Mount once: recapture, and subscribe keydown/focus. These listeners read
+  // modeRef.current so they don't need [mode] in deps (which caused the wipe bug).
   useEffect(() => {
     let mounted = true;
     async function recapture() {
       const dataUrl = await captureScreen();
-      if (mounted) {
+      if (mounted && modeRef.current === "selecting") {
         setBg(dataUrl);
         setSelection(null);
         startRef.current = null;
-        setMode("selecting");
       }
     }
     recapture();
 
     const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (mode === "editing") {
-          // Exit edit but keep the window up for a new selection.
-          setMode("selecting");
-          setSelection(null);
-          startRef.current = null;
-        } else {
-          hideCurrentWindow();
-        }
+      if (e.key !== "Escape") return;
+      if (modeRef.current === "editing") {
+        // Exit edit but keep the window up for a new selection.
+        setModeSync("selecting");
+        setSelection(null);
+        startRef.current = null;
+        recapture();
+      } else {
+        hideCurrentWindow();
       }
     };
     window.addEventListener("resize", onResize);
@@ -54,7 +61,7 @@ export default function SelectorWindow() {
 
     const win = getCurrentWebviewWindow();
     const unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
-      if (focused && mode === "selecting") recapture();
+      if (focused && modeRef.current === "selecting") recapture();
     });
 
     return () => {
@@ -64,7 +71,7 @@ export default function SelectorWindow() {
       unlistenFocus.then((fn) => fn());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, []);
 
   // ---- selecting-mode mouse handlers ----
   function onMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
@@ -96,7 +103,7 @@ export default function SelectorWindow() {
     // in screen coordinates so the canvas sits exactly over the selection.
     initEditor(bg, selection);
     setTool("smart");
-    setMode("editing");
+    setModeSync("editing");
   }
 
   // ---- editing mode ----
@@ -104,12 +111,12 @@ export default function SelectorWindow() {
     return (
       <div style={{ position: "relative", width: size.width, height: size.height }}>
         {/* Dim everything outside the selection; the selection stays clear so the
-            user edits "in place". Rendered as four rects around the hole. */}
+            user edits "in place". */}
         <SelectionDimmer stageWidth={size.width} stageHeight={size.height} selection={selection} image={image} />
         {/* Editor body overlays the full window; EditorStage draws the background
-            at selection coords and tools operate in screen space. */}
+            at full window size and tools operate in screen space. */}
         <div style={{ position: "absolute", inset: 0 }}>
-          <EditorView onExit={() => setMode("selecting")} />
+          <EditorView onExit={() => setModeSync("selecting")} />
         </div>
       </div>
     );
@@ -141,9 +148,7 @@ export default function SelectorWindow() {
 
 /**
  * Draws the full screenshot with a dim overlay everywhere EXCEPT the selection
- * rect (a "hole"). Implemented as four rects framing the hole — reliable and
- * compositing-free. The screenshot is drawn at full brightness inside the hole
- * (via the editor's own background) so this layer only owns the outside dim.
+ * rect (a "hole"), implemented as four rects framing the hole.
  */
 function SelectionDimmer({
   stageWidth,
@@ -162,15 +167,10 @@ function SelectionDimmer({
     <Stage width={stageWidth} height={stageHeight} style={{ position: "absolute", inset: 0 }}>
       <Layer listening={false}>
         <KonvaImage image={image} x={0} y={0} width={stageWidth} height={stageHeight} />
-        {/* top */}
         <Rect x={0} y={0} width={stageWidth} height={Math.max(0, y)} fill={dim} />
-        {/* bottom */}
         <Rect x={0} y={y + height} width={stageWidth} height={Math.max(0, stageHeight - (y + height))} fill={dim} />
-        {/* left */}
         <Rect x={0} y={y} width={Math.max(0, x)} height={height} fill={dim} />
-        {/* right */}
         <Rect x={x + width} y={y} width={Math.max(0, stageWidth - (x + width))} height={height} fill={dim} />
-        {/* selection border */}
         <Rect x={x} y={y} width={width} height={height} stroke="#ff4757" strokeWidth={2} dash={[6, 3]} />
       </Layer>
     </Stage>
