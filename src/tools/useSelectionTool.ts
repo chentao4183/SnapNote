@@ -6,11 +6,11 @@ import type { Annotation } from "../types/annotation";
  * Selection-mode orchestration:
  *  - click a shape -> select it (id)
  *  - Delete/Backspace -> remove the selected annotation
- *  - Ctrl+Z / Ctrl+Shift+Z -> undo / redo (Task 14 wires keys too; keep here for cohesion)
+ *  - Esc -> close any open inline editor
  *  - double-click a text/smart annotation -> open an inline editor to re-edit its note
  *
- * Drag-to-move is handled per-shape (draggable + onDragEnd -> updateAnnotation),
- * so this hook only owns selection + keyboard actions + the re-edit overlay state.
+ * Undo/redo + window exit live in useEditorShortcuts; drag-to-move is handled
+ * per-shape (draggable + onDragEnd -> updateAnnotation).
  */
 export function useSelectionTool() {
   const selectedId = useEditorStore((s) => s.selectedId);

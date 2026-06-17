@@ -1,6 +1,5 @@
 import type Konva from "konva";
 import { copyImageToClipboard, saveImage } from "../ipc/bridge";
-import { useEditorStore } from "../store/editorStore";
 
 /**
  * The reference to the editor's Konva Stage is registered here (set from
@@ -14,12 +13,10 @@ export function setEditorStage(stage: Konva.Stage | null) {
 }
 
 async function composeDataUrl(): Promise<string> {
-  if (stageRef) {
-    return stageRef.toDataURL({ pixelRatio: 1, mimeType: "image/png" });
+  if (!stageRef) {
+    throw new Error("editor stage not ready");
   }
-  // Fallback: background only.
-  const { backgroundImage } = useEditorStore.getState();
-  return backgroundImage;
+  return stageRef.toDataURL({ pixelRatio: window.devicePixelRatio || 1, mimeType: "image/png" });
 }
 
 export async function exportToClipboard(): Promise<void> {

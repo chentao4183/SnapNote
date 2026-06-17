@@ -1,4 +1,4 @@
-import { Group, Arrow } from "react-konva";
+import { Group, Arrow, Rect } from "react-konva";
 import type { Annotation } from "../../types/annotation";
 import { cornerPoint } from "../../geometry/corners";
 import { useEditorStore } from "../../store/editorStore";
@@ -66,7 +66,8 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
             });
           }}
         >
-          {/* invisible hit area over the rect */}
+          {/* invisible-but-hittable area over the rect */}
+          <Rect x={a.rect.x} y={a.rect.y} width={a.rect.width} height={a.rect.height} fill="rgba(0,0,0,0.001)" />
         </Group>
       )}
     </Group>

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen, emitTo, type UnlistenFn } from "@tauri-apps/api/event";
 import { WebviewWindow, getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 // ---- Commands ----
@@ -57,7 +57,8 @@ export async function showEditorWindow(
 ): Promise<void> {
   const editor = await WebviewWindow.getByLabel("editor");
   if (editor) {
-    await editor.emit("editor-load", selectionData);
+    // emitTo targets the editor window's webview explicitly (cross-window).
+    await emitTo("editor", "editor-load", selectionData);
     await editor.show();
     await editor.setFocus();
   }

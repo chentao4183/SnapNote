@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useEditorStore } from "../store/editorStore";
 import EditorStage from "../canvas/EditorStage";
@@ -8,6 +8,7 @@ import { useActiveTool } from "../tools";
 import { useSelectionTool } from "../tools/useSelectionTool";
 import { useEditorShortcuts } from "../tools/useEditorShortcuts";
 import { hideCurrentWindow } from "../ipc/bridge";
+import { exportToFile } from "../canvas/exportCanvas";
 
 interface LoadPayload {
   x: number;
@@ -21,7 +22,13 @@ export default function EditorWindow() {
   const init = useEditorStore((s) => s.init);
   const active = useActiveTool();
   const selection = useSelectionTool();
-  useEditorShortcuts({ onExit: () => hideCurrentWindow() });
+  const [loaded, setLoaded] = useState(false);
+  useEditorShortcuts({
+    onExit: () => hideCurrentWindow(),
+    onSave: () => {
+      void exportToFile("png");
+    },
+  });
 
   useEffect(() => {
     const unlisten = listen<LoadPayload>("editor-load", (event) => {
@@ -35,6 +42,7 @@ export default function EditorWindow() {
         ctx.drawImage(img, p.x, p.y, p.width, p.height, 0, 0, p.width, p.height);
         const cropped = canvas.toDataURL("image/png");
         init(cropped, { x: 0, y: 0, width: p.width, height: p.height });
+        setLoaded(true);
       };
       img.src = p.fullBase64;
     });
@@ -42,6 +50,12 @@ export default function EditorWindow() {
       unlisten.then((fn) => fn());
     };
   }, [init]);
+
+  // Don't mount the Konva stage until the cropped background is ready — rendering
+  // <KonvaImage image={undefined}> before that would warn/throw.
+  if (!loaded) {
+    return <div style={{ width: "100vw", height: "100vh", background: "#1a1a2e" }} />;
+  }
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", background: "#1a1a2e" }}>
