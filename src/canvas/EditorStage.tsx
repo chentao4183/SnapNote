@@ -1,9 +1,12 @@
+import { useRef } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Arrow } from "react-konva";
+import type Konva from "konva";
 import useImage from "use-image";
 import { useEditorStore } from "../store/editorStore";
 import AnnotationLayer from "./layers/AnnotationLayer";
 import { useActiveTool } from "../tools";
 import { cornerPoint } from "../geometry/corners";
+import { setEditorStage } from "./exportCanvas";
 import type { Annotation } from "../types/annotation";
 
 interface Props {
@@ -15,6 +18,7 @@ export default function EditorStage({ onEditText }: Props) {
   const rect = useEditorStore((s) => s.selectionRect);
   const [image] = useImage(bg);
   const active = useActiveTool();
+  const stageRef = useRef<Konva.Stage>(null);
 
   // Attach only the active tool's handlers (discriminated by `active.kind`).
   const handlers =
@@ -31,7 +35,15 @@ export default function EditorStage({ onEditText }: Props) {
               : {};
 
   return (
-    <Stage width={window.innerWidth} height={window.innerHeight} {...handlers}>
+    <Stage
+      width={window.innerWidth}
+      height={window.innerHeight}
+      {...handlers}
+      ref={(node) => {
+        stageRef.current = node;
+        setEditorStage(node);
+      }}
+    >
       <Layer>
         <KonvaImage image={image} x={rect.x} y={rect.y} width={rect.width} height={rect.height} />
       </Layer>
