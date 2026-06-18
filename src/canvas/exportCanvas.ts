@@ -21,15 +21,26 @@ async function composeDataUrl(): Promise<string> {
   if (!stageRef) {
     throw new Error("editor stage not ready");
   }
-  const { x, y, width, height } = useEditorStore.getState().cropRegion;
-  return stageRef.toDataURL({
-    x,
-    y,
-    width,
-    height,
-    pixelRatio: window.devicePixelRatio || 1,
-    mimeType: "image/png",
-  });
+  const selectedId = useEditorStore.getState().selectedId;
+  useEditorStore.getState().selectAnnotation(null);
+  await nextFrame();
+  try {
+    const { x, y, width, height } = useEditorStore.getState().cropRegion;
+    return stageRef.toDataURL({
+      x,
+      y,
+      width,
+      height,
+      pixelRatio: window.devicePixelRatio || 1,
+      mimeType: "image/png",
+    });
+  } finally {
+    useEditorStore.getState().selectAnnotation(selectedId);
+  }
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
 export async function exportToClipboard(): Promise<void> {

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Stage, Layer, Image as KonvaImage, Rect, Arrow } from "react-konva";
+import { Stage, Layer, Image as KonvaImage, Rect, Arrow, Ellipse } from "react-konva";
 import type Konva from "konva";
 import useImage from "use-image";
 import { useEditorStore } from "../store/editorStore";
@@ -51,26 +51,8 @@ export default function EditorStage({ active, onEditText }: Props) {
       <AnnotationLayer selectable onEditText={onEditText} crop={crop} />
       {/* Preview layer for in-progress annotations */}
       <Layer listening={false} clipX={crop.x} clipY={crop.y} clipWidth={crop.width} clipHeight={crop.height}>
-        {active.kind === "smart" && active.smart.previewRect && (
-          <Rect
-            x={active.smart.previewRect.x}
-            y={active.smart.previewRect.y}
-            width={active.smart.previewRect.width}
-            height={active.smart.previewRect.height}
-            stroke="#ff4757"
-            strokeWidth={3}
-          />
-        )}
-        {active.kind === "smart" && !active.smart.previewRect && active.smart.rect && (
-          <Rect
-            x={active.smart.rect.x}
-            y={active.smart.rect.y}
-            width={active.smart.rect.width}
-            height={active.smart.rect.height}
-            stroke="#ff4757"
-            strokeWidth={3}
-          />
-        )}
+        {active.kind === "smart" && active.smart.previewRect && renderBounds(active.smart.previewRect, active.smart.shape)}
+        {active.kind === "smart" && !active.smart.previewRect && active.smart.rect && renderBounds(active.smart.rect, active.smart.shape)}
         {active.kind === "smart" && active.smart.arrowStart && active.smart.arrowEnd && (
           <Arrow
             points={[
@@ -120,4 +102,20 @@ export default function EditorStage({ active, onEditText }: Props) {
       </Layer>
     </Stage>
   );
+}
+
+function renderBounds(rect: { x: number; y: number; width: number; height: number }, shape: "rect" | "ellipse") {
+  if (shape === "ellipse") {
+    return (
+      <Ellipse
+        x={rect.x + rect.width / 2}
+        y={rect.y + rect.height / 2}
+        radiusX={rect.width / 2}
+        radiusY={rect.height / 2}
+        stroke="#ff4757"
+        strokeWidth={3}
+      />
+    );
+  }
+  return <Rect x={rect.x} y={rect.y} width={rect.width} height={rect.height} stroke="#ff4757" strokeWidth={3} />;
 }

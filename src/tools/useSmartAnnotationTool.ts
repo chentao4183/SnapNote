@@ -1,14 +1,18 @@
 import { useRef } from "react";
 import type Konva from "konva";
+import { smartArrowStart } from "../geometry/arrowAnchor";
+import { labelSide } from "../geometry/labelBox";
 import { useEditorStore } from "../store/editorStore";
+import { useToolStyleStore } from "../store/toolStyleStore";
 import { useToolState } from "../store/toolState";
-import { cornerPoint, nearestCorner } from "../geometry/corners";
-import { DEFAULT_STYLE, type Annotation } from "../types/annotation";
+import { annotationFieldsFromToolStyle } from "../style/styleMapping";
+import type { Annotation } from "../types/annotation";
 
 type Phase = "idle" | "drawing-rect" | "selecting-label-position" | "editing-label";
 
 export function useSmartAnnotationTool() {
   const addAnnotation = useEditorStore((s) => s.addAnnotation);
+  const style = useToolStyleStore((s) => s.settings.smart);
   const ts = useToolState();
   const phaseRef = useRef<Phase>("idle");
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -45,7 +49,7 @@ export function useSmartAnnotationTool() {
         });
       } else if (phaseRef.current === "selecting-label-position" && rectRef.current) {
         ts.setSmart({
-          arrowStart: cornerPoint(rectRef.current, ts.startCorner),
+          arrowStart: smartArrowStart(style.shape, rectRef.current, p),
           arrowEnd: p,
         });
       }
@@ -61,16 +65,10 @@ export function useSmartAnnotationTool() {
       const p = pos(e);
       rectRef.current = r;
       skipNextClickRef.current = true;
-      // spec §5.2: the arrow starts from the rect corner nearest to where the
-      // mouse was released. Storing the corner id (not absolute coords) lets the
-      // anchor recompute automatically as the rect moves/resizes, and drives the
-      // label-extend direction in spec §5.3.
-      const corner = nearestCorner(r, p);
       ts.setSmart({
         previewRect: null,
         rect: r,
-        startCorner: corner,
-        arrowStart: cornerPoint(r, corner),
+        arrowStart: smartArrowStart(style.shape, r, p),
         arrowEnd: p,
         textPos: null,
       });
@@ -85,7 +83,7 @@ export function useSmartAnnotationTool() {
 
       const p = pos(e);
       ts.setSmart({
-        arrowStart: cornerPoint(rectRef.current, ts.startCorner),
+        arrowStart: smartArrowStart(style.shape, rectRef.current, p),
         arrowEnd: p,
         textPos: p,
       });
@@ -100,23 +98,22 @@ export function useSmartAnnotationTool() {
     const labelAnchor = ts.textPos;
 
     if (rect && arrowStart && arrowEnd && labelAnchor && text.trim()) {
+      const settings = useToolStyleStore.getState().settings;
+      const fields = annotationFieldsFromToolStyle("smart", settings);
       const a: Annotation = {
         id: crypto.randomUUID(),
         type: "smart",
         rect,
+        ...fields,
         note: text,
         arrow: {
-          // Smart annotations store the corner id, not absolute start coords,
-          // so the anchor and the label-extend direction (spec §5.3) stay
-          // correct when the rect moves. Absolute startX/startY is for the
-          // standalone arrow tool only.
-          startCorner: ts.startCorner,
+          startX: arrowStart.x,
+          startY: arrowStart.y,
           endX: arrowEnd.x,
           endY: arrowEnd.y,
           labelX: labelAnchor.x,
           labelY: labelAnchor.y,
         },
-        style: { ...DEFAULT_STYLE },
       };
       addAnnotation(a);
     }
@@ -138,6 +135,9 @@ export function useSmartAnnotationTool() {
     arrowStart: ts.arrowStart,
     arrowEnd: ts.arrowEnd,
     textPos: ts.textPos,
+    textAlign: ts.rect && ts.textPos && labelSide(ts.textPos, ts.rect) === "left" ? ("right" as const) : ("left" as const),
+    shape: style.shape,
+    style,
     isEnteringText: ts.textPos !== null,
     handlers,
     submitText,

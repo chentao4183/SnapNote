@@ -1,7 +1,7 @@
-import { Group, Arrow, Rect } from "react-konva";
-import type { Annotation } from "../../types/annotation";
+import { Arrow, Ellipse, Group, Rect } from "react-konva";
 import { cornerPoint } from "../../geometry/corners";
 import { useEditorStore } from "../../store/editorStore";
+import type { Annotation } from "../../types/annotation";
 import TextLabelShape from "./TextLabelShape";
 
 interface Props {
@@ -10,12 +10,6 @@ interface Props {
   onEditText?: (a: Annotation, x: number, y: number) => void;
 }
 
-/**
- * The smart annotation is a composite: rect + arrow (from the rect edge to a
- * label anchor) + optional label. When selectable, the rect itself is
- * draggable and moves the whole annotation (rect + arrow + label);
- * double-click opens a text editor for the note.
- */
 export default function SmartAnnotationGroup({ a, selectable = false, onEditText }: Props) {
   const selectedId = useEditorStore((s) => s.selectedId);
   const select = useEditorStore((s) => s.selectAnnotation);
@@ -28,6 +22,7 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
       : a.rect && a.arrow?.startCorner
         ? cornerPoint(a.rect, a.arrow.startCorner)
         : null;
+  const headSize = a.arrowHeadSize ?? 10;
 
   return (
     <Group
@@ -51,12 +46,62 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
         }
       }}
     >
-      {a.rect && (
-        <Rect
-          x={a.rect.x}
-          y={a.rect.y}
-          width={a.rect.width}
-          height={a.rect.height}
+      {a.rect && renderBoundary()}
+      {a.arrow && start && (
+        <Arrow
+          points={[start.x, start.y, a.arrow.endX, a.arrow.endY]}
+          stroke={a.style.borderColor}
+          strokeWidth={a.style.borderWidth}
+          fill={a.style.borderColor}
+          pointerLength={headSize}
+          pointerWidth={headSize}
+          dash={a.lineStyle === "dashed" ? [10, 6] : undefined}
+          listening={false}
+        />
+      )}
+      <TextLabelShape a={a} selectable={selectable} onEditText={onEditText} />
+
+      {isSelected && a.rect && (
+        <>
+          <Rect
+            x={a.rect.x - 4}
+            y={a.rect.y - 4}
+            width={a.rect.width + 8}
+            height={a.rect.height + 8}
+            stroke="#1e90ff"
+            strokeWidth={1}
+            dash={[4, 4]}
+            listening={false}
+          />
+          <Rect
+            x={a.rect.x}
+            y={a.rect.y}
+            width={a.rect.width}
+            height={a.rect.height}
+            fill="rgba(0,0,0,0.001)"
+            draggable
+            onDragEnd={(e) => {
+              const dx = e.target.x();
+              const dy = e.target.y();
+              e.target.x(0);
+              e.target.y(0);
+              moveWholeAnnotation(dx, dy);
+            }}
+          />
+        </>
+      )}
+    </Group>
+  );
+
+  function renderBoundary() {
+    if (!a.rect) return null;
+    if ((a.shape ?? "rect") === "ellipse") {
+      return (
+        <Ellipse
+          x={a.rect.x + a.rect.width / 2}
+          y={a.rect.y + a.rect.height / 2}
+          radiusX={a.rect.width / 2}
+          radiusY={a.rect.height / 2}
           stroke={a.style.borderColor}
           strokeWidth={a.style.borderWidth}
           listening={selectable}
@@ -72,52 +117,42 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
             select(a.id);
           }}
           onDragEnd={(e) => {
-            const dx = e.target.x() - a.rect!.x;
-            const dy = e.target.y() - a.rect!.y;
+            const dx = e.target.x() - (a.rect!.x + a.rect!.width / 2);
+            const dy = e.target.y() - (a.rect!.y + a.rect!.height / 2);
             moveWholeAnnotation(dx, dy);
           }}
-          shadowEnabled={isSelected}
-          shadowColor="#00d2ff"
-          shadowBlur={10}
-          shadowOpacity={0.9}
         />
-      )}
-      {a.arrow && start && (
-        <Arrow
-          points={[start.x, start.y, a.arrow.endX, a.arrow.endY]}
-          stroke={a.style.borderColor}
-          strokeWidth={a.style.borderWidth}
-          fill={a.style.borderColor}
-          pointerLength={10}
-          pointerWidth={10}
-          listening={false}
-        />
-      )}
-      <TextLabelShape a={a} selectable={selectable} onEditText={onEditText} />
+      );
+    }
 
-      {/* Move-whole-annotation drag: an invisible hit rect over the box, only
-          when selected. The per-shape RectShape already handles its own drag,
-          but for the smart group we want drag to move rect + arrow + label
-          together, so we override with this dedicated handle. */}
-      {isSelected && a.rect && (
-        <Rect
-          x={a.rect.x}
-          y={a.rect.y}
-          width={a.rect.width}
-          height={a.rect.height}
-          fill="rgba(0,0,0,0.001)"
-          draggable
-          onDragEnd={(e) => {
-            const dx = e.target.x();
-            const dy = e.target.y();
-            e.target.x(0);
-            e.target.y(0);
-            moveWholeAnnotation(dx, dy);
-          }}
-        />
-      )}
-    </Group>
-  );
+    return (
+      <Rect
+        x={a.rect.x}
+        y={a.rect.y}
+        width={a.rect.width}
+        height={a.rect.height}
+        stroke={a.style.borderColor}
+        strokeWidth={a.style.borderWidth}
+        listening={selectable}
+        draggable={isSelected}
+        onClick={(e) => {
+          if (!selectable) return;
+          e.cancelBubble = true;
+          select(a.id);
+        }}
+        onTap={(e) => {
+          if (!selectable) return;
+          e.cancelBubble = true;
+          select(a.id);
+        }}
+        onDragEnd={(e) => {
+          const dx = e.target.x() - a.rect!.x;
+          const dy = e.target.y() - a.rect!.y;
+          moveWholeAnnotation(dx, dy);
+        }}
+      />
+    );
+  }
 
   function moveWholeAnnotation(dx: number, dy: number) {
     update(a.id, {
