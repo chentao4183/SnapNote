@@ -36,9 +36,16 @@ export function labelBoxOffset(corner: Corner, boxWidth: number, boxHeight: numb
 }
 
 export type LabelSide = "left" | "right";
+export type LabelVerticalAnchor = "top" | "middle" | "bottom";
 
 export function labelSide(anchor: { x: number; y: number }, rect: Rect): LabelSide {
   return anchor.x < rect.x + rect.width / 2 ? "left" : "right";
+}
+
+export function labelVerticalAnchor(anchor: { x: number; y: number }, rect: Rect): LabelVerticalAnchor {
+  if (anchor.y < rect.y) return "bottom";
+  if (anchor.y > rect.y + rect.height) return "top";
+  return "middle";
 }
 
 export function labelBoxPosition(
@@ -46,9 +53,26 @@ export function labelBoxPosition(
   side: LabelSide,
   boxWidth: number,
   boxHeight: number,
+  vertical: LabelVerticalAnchor = "bottom",
 ): { boxX: number; boxY: number } {
+  const boxY =
+    vertical === "top" ? anchor.y : vertical === "middle" ? anchor.y - boxHeight / 2 : anchor.y - boxHeight;
+
   return {
     boxX: side === "left" ? anchor.x - boxWidth : anchor.x,
-    boxY: anchor.y - boxHeight - 2,
+    boxY,
+  };
+}
+
+export function labelAnchorFromBoxPosition(
+  box: { x: number; y: number },
+  side: LabelSide,
+  vertical: LabelVerticalAnchor,
+  boxWidth: number,
+  boxHeight: number,
+): { x: number; y: number } {
+  return {
+    x: side === "left" ? box.x + boxWidth : box.x,
+    y: vertical === "top" ? box.y : vertical === "middle" ? box.y + boxHeight / 2 : box.y + boxHeight,
   };
 }

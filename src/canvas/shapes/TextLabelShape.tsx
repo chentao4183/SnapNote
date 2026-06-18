@@ -1,6 +1,12 @@
 import { Group, Rect, Text } from "react-konva";
 import { smartArrowStart } from "../../geometry/arrowAnchor";
-import { labelBoxOffset, labelBoxPosition as positionLabelBox, labelSide } from "../../geometry/labelBox";
+import {
+  labelAnchorFromBoxPosition,
+  labelBoxOffset,
+  labelBoxPosition as positionLabelBox,
+  labelSide,
+  labelVerticalAnchor,
+} from "../../geometry/labelBox";
 import { useEditorStore } from "../../store/editorStore";
 import type { Annotation } from "../../types/annotation";
 import { LABEL_PAD_X, LABEL_PAD_Y, labelBoxSize } from "../labelMetrics";
@@ -99,7 +105,8 @@ function labelBoxPosition(
   boxHeight: number,
 ): { boxX: number; boxY: number } {
   if (a.rect) {
-    return positionLabelBox({ x: labelX, y: labelY }, labelSide({ x: labelX, y: labelY }, a.rect), boxWidth, boxHeight);
+    const anchor = { x: labelX, y: labelY };
+    return positionLabelBox(anchor, labelSide(anchor, a.rect), boxWidth, boxHeight, labelVerticalAnchor(anchor, a.rect));
   }
   if (a.arrow?.startCorner) {
     const off = labelBoxOffset(a.arrow.startCorner, boxWidth, boxHeight);
@@ -116,11 +123,15 @@ function labelAnchorFromBox(
   boxHeight: number,
 ): { labelX: number; labelY: number } {
   if (a.rect) {
-    const side = labelSide({ x: a.arrow?.endX ?? boxX, y: a.arrow?.endY ?? boxY }, a.rect);
-    return {
-      labelX: side === "left" ? boxX + boxWidth : boxX,
-      labelY: boxY + boxHeight + 2,
-    };
+    const oldAnchor = { x: a.arrow?.endX ?? boxX, y: a.arrow?.endY ?? boxY };
+    const anchor = labelAnchorFromBoxPosition(
+      { x: boxX, y: boxY },
+      labelSide(oldAnchor, a.rect),
+      labelVerticalAnchor(oldAnchor, a.rect),
+      boxWidth,
+      boxHeight,
+    );
+    return { labelX: anchor.x, labelY: anchor.y };
   }
   if (a.arrow?.startCorner) {
     const off = labelBoxOffset(a.arrow.startCorner, boxWidth, boxHeight);

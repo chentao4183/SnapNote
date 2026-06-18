@@ -39,9 +39,10 @@ export default function EditorView({ onExit }: Props) {
       {active.kind === "smart" && active.smart.isEnteringText && active.smart.textPos && (
         <TextInputOverlay
           x={active.smart.textPos.x}
-          y={active.smart.textPos.y - active.smart.style.fontSize - 12}
+          y={active.smart.textPos.y}
           initial=""
           align={active.smart.textAlign}
+          verticalAnchor={active.smart.textVerticalAnchor}
           background={active.smart.style.color}
           color="#ffffff"
           fontSize={active.smart.style.fontSize}

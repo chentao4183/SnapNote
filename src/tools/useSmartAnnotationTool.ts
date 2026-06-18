@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type Konva from "konva";
 import { smartArrowStart } from "../geometry/arrowAnchor";
-import { labelSide } from "../geometry/labelBox";
+import { labelSide, labelVerticalAnchor } from "../geometry/labelBox";
 import { useEditorStore } from "../store/editorStore";
 import { useToolStyleStore } from "../store/toolStyleStore";
 import { useToolState } from "../store/toolState";
@@ -136,6 +136,7 @@ export function useSmartAnnotationTool() {
     arrowEnd: ts.arrowEnd,
     textPos: ts.textPos,
     textAlign: ts.rect && ts.textPos && labelSide(ts.textPos, ts.rect) === "left" ? ("right" as const) : ("left" as const),
+    textVerticalAnchor: ts.rect && ts.textPos ? labelVerticalAnchor(ts.textPos, ts.rect) : ("top" as const),
     shape: style.shape,
     style,
     isEnteringText: ts.textPos !== null,

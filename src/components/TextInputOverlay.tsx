@@ -5,6 +5,7 @@ interface Props {
   y: number;
   initial: string;
   align?: "left" | "right";
+  verticalAnchor?: "top" | "middle" | "bottom";
   background?: string;
   color?: string;
   fontSize?: number;
@@ -18,6 +19,7 @@ export default function TextInputOverlay({
   y,
   initial,
   align = "left",
+  verticalAnchor = "top",
   background = "#ff4757",
   color = "white",
   fontSize = 13,
@@ -41,7 +43,9 @@ export default function TextInputOverlay({
   }, [text, fontSize, fontFamily]);
 
   const effectiveFontFamily = fontFamily || "system-ui, -apple-system, Segoe UI, Microsoft YaHei, sans-serif";
+  const height = fontSize + 10;
   const left = align === "right" ? x - width : x;
+  const top = verticalAnchor === "top" ? y : verticalAnchor === "middle" ? y - height / 2 : y - height;
 
   return (
     <>
@@ -65,8 +69,9 @@ export default function TextInputOverlay({
         style={{
           position: "absolute",
           left,
-          top: y,
+          top,
           width,
+          height,
           background,
           color,
           border: "none",

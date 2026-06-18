@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { labelBoxOffset, labelBoxPosition, labelSide } from "./labelBox";
+import { labelAnchorFromBoxPosition, labelBoxOffset, labelBoxPosition, labelSide, labelVerticalAnchor } from "./labelBox";
 
 /**
  * Locks the spec §5.3 rule: the label's anchor corner is decided by the rect
@@ -39,11 +39,22 @@ describe("label side positioning", () => {
 
   it("uses the left side when the anchor is left of the shape center", () => {
     expect(labelSide({ x: 120, y: 100 }, rect)).toBe("left");
-    expect(labelBoxPosition({ x: 120, y: 100 }, "left", 60, 20)).toEqual({ boxX: 60, boxY: 78 });
+    expect(labelBoxPosition({ x: 120, y: 100 }, "left", 60, 20, "bottom")).toEqual({ boxX: 60, boxY: 80 });
   });
 
   it("uses the right side when the anchor is right of the shape center", () => {
     expect(labelSide({ x: 170, y: 100 }, rect)).toBe("right");
-    expect(labelBoxPosition({ x: 170, y: 100 }, "right", 60, 20)).toEqual({ boxX: 170, boxY: 78 });
+    expect(labelBoxPosition({ x: 170, y: 100 }, "right", 60, 20, "bottom")).toEqual({ boxX: 170, boxY: 80 });
+  });
+
+  it("anchors to the top edge when the label is below the target", () => {
+    const anchor = { x: 80, y: 170 };
+    expect(labelVerticalAnchor(anchor, rect)).toBe("top");
+    expect(labelBoxPosition(anchor, "left", 60, 20, "top")).toEqual({ boxX: 20, boxY: 170 });
+  });
+
+  it("inverts a label box position back to the fixed arrow anchor", () => {
+    expect(labelAnchorFromBoxPosition({ x: 20, y: 170 }, "left", "top", 60, 20)).toEqual({ x: 80, y: 170 });
+    expect(labelAnchorFromBoxPosition({ x: 20, y: 150 }, "left", "bottom", 60, 20)).toEqual({ x: 80, y: 170 });
   });
 });
