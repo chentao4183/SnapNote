@@ -3,23 +3,12 @@ import { smartArrowStart } from "../../geometry/arrowAnchor";
 import { labelBoxOffset, labelBoxPosition as positionLabelBox, labelSide } from "../../geometry/labelBox";
 import { useEditorStore } from "../../store/editorStore";
 import type { Annotation } from "../../types/annotation";
-
-const PAD_X = 10;
-const PAD_Y = 5;
+import { LABEL_PAD_X, LABEL_PAD_Y, labelBoxSize } from "../labelMetrics";
 
 interface Props {
   a: Annotation;
   selectable?: boolean;
   onEditText?: (a: Annotation, x: number, y: number) => void;
-}
-
-function measureWidth(text: string, fontSize: number, fontFamily: string | undefined): number {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return text.length * fontSize * 0.6;
-  const family = fontFamily || 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif';
-  ctx.font = `${fontSize}px ${family}`;
-  return ctx.measureText(text).width;
 }
 
 export default function TextLabelShape({ a, selectable = false, onEditText }: Props) {
@@ -34,9 +23,7 @@ export default function TextLabelShape({ a, selectable = false, onEditText }: Pr
   const text = a.note;
   const labelX = a.arrow.labelX ?? a.arrow.endX;
   const labelY = a.arrow.labelY ?? a.arrow.endY;
-  const textWidth = measureWidth(text, a.style.fontSize, a.fontFamily);
-  const boxWidth = Math.max(40, textWidth + PAD_X * 2);
-  const boxHeight = a.style.fontSize + PAD_Y * 2;
+  const { width: boxWidth, height: boxHeight } = labelBoxSize(text, a.style, a.fontFamily);
   const { boxX, boxY } = labelBoxPosition(a, labelX, labelY, boxWidth, boxHeight);
 
   return (
@@ -80,8 +67,8 @@ export default function TextLabelShape({ a, selectable = false, onEditText }: Pr
     >
       <Rect x={0} y={0} width={boxWidth} height={boxHeight} fill={a.style.bgColor} cornerRadius={4} />
       <Text
-        x={PAD_X}
-        y={PAD_Y}
+        x={LABEL_PAD_X}
+        y={LABEL_PAD_Y}
         text={text}
         fill={a.style.textColor}
         fontSize={a.style.fontSize}

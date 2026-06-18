@@ -1,7 +1,10 @@
 import { Arrow, Ellipse, Group, Rect } from "react-konva";
+import { connectorBetweenShapeAndLabel } from "../../geometry/connector";
 import { cornerPoint } from "../../geometry/corners";
+import { labelBoxPosition, labelSide } from "../../geometry/labelBox";
 import { useEditorStore } from "../../store/editorStore";
 import type { Annotation } from "../../types/annotation";
+import { labelBoxSize } from "../labelMetrics";
 import TextLabelShape from "./TextLabelShape";
 
 interface Props {
@@ -22,6 +25,7 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
       : a.rect && a.arrow?.startCorner
         ? cornerPoint(a.rect, a.arrow.startCorner)
         : null;
+  const smartConnector = smartLabelConnector();
   const headSize = a.arrowHeadSize ?? 10;
 
   return (
@@ -47,9 +51,13 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
       }}
     >
       {a.rect && renderBoundary()}
-      {a.arrow && start && (
+      {a.arrow && (smartConnector || start) && (
         <Arrow
-          points={[start.x, start.y, a.arrow.endX, a.arrow.endY]}
+          points={
+            smartConnector
+              ? [smartConnector.start.x, smartConnector.start.y, smartConnector.end.x, smartConnector.end.y]
+              : [start!.x, start!.y, a.arrow.endX, a.arrow.endY]
+          }
           stroke={a.style.borderColor}
           strokeWidth={a.style.borderWidth}
           fill={a.style.borderColor}
@@ -152,6 +160,20 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
         }}
       />
     );
+  }
+
+  function smartLabelConnector() {
+    if (!a.rect || !a.arrow || a.note === undefined || a.note.trim() === "") return null;
+    const labelX = a.arrow.labelX ?? a.arrow.endX;
+    const labelY = a.arrow.labelY ?? a.arrow.endY;
+    const boxSize = labelBoxSize(a.note, a.style, a.fontFamily);
+    const box = labelBoxPosition({ x: labelX, y: labelY }, labelSide({ x: labelX, y: labelY }, a.rect), boxSize.width, boxSize.height);
+    return connectorBetweenShapeAndLabel(a.shape ?? "rect", a.rect, {
+      x: box.boxX,
+      y: box.boxY,
+      width: boxSize.width,
+      height: boxSize.height,
+    });
   }
 
   function moveWholeAnnotation(dx: number, dy: number) {
