@@ -1,6 +1,8 @@
 export type ToolType = "select" | "smart" | "rect" | "arrow" | "text" | "mosaic";
 
 export type Corner = "tl" | "tr" | "bl" | "br";
+export type ShapeKind = "rect" | "ellipse";
+export type LineStyle = "solid" | "dashed";
 
 export interface Rect {
   x: number;
@@ -42,6 +44,10 @@ export interface Annotation {
   id: string;
   type: ToolType;
   rect?: Rect;
+  shape?: ShapeKind;
+  lineStyle?: LineStyle;
+  arrowHeadSize?: number;
+  fontFamily?: string;
   note?: string;
   arrow?: ArrowData;
   style: AnnotationStyle;

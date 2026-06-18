@@ -1,4 +1,5 @@
 import type { Corner } from "../types/annotation";
+import type { Rect } from "../types/annotation";
 
 export interface Offset {
   dx: number;
@@ -32,4 +33,22 @@ export function labelBoxOffset(corner: Corner, boxWidth: number, boxHeight: numb
     case "br":
       return { dx: 0, dy: 0 };
   }
+}
+
+export type LabelSide = "left" | "right";
+
+export function labelSide(anchor: { x: number; y: number }, rect: Rect): LabelSide {
+  return anchor.x < rect.x + rect.width / 2 ? "left" : "right";
+}
+
+export function labelBoxPosition(
+  anchor: { x: number; y: number },
+  side: LabelSide,
+  boxWidth: number,
+  boxHeight: number,
+): { boxX: number; boxY: number } {
+  return {
+    boxX: side === "left" ? anchor.x - boxWidth : anchor.x,
+    boxY: anchor.y - boxHeight - 2,
+  };
 }
