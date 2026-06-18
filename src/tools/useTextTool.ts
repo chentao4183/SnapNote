@@ -1,10 +1,13 @@
 import type Konva from "konva";
 import { useEditorStore } from "../store/editorStore";
+import { useToolStyleStore } from "../store/toolStyleStore";
 import { useToolState } from "../store/toolState";
-import { DEFAULT_STYLE, type Annotation } from "../types/annotation";
+import { annotationFieldsFromToolStyle } from "../style/styleMapping";
+import type { Annotation } from "../types/annotation";
 
 export function useTextTool() {
   const addAnnotation = useEditorStore((s) => s.addAnnotation);
+  const style = useToolStyleStore((s) => s.settings.text);
   const ts = useToolState();
 
   function pos(e: Konva.KonvaEventObject<MouseEvent>) {
@@ -18,7 +21,7 @@ export function useTextTool() {
         type: "text",
         note: text,
         arrow: { endX: ts.textPos.x, endY: ts.textPos.y },
-        style: { ...DEFAULT_STYLE },
+        ...annotationFieldsFromToolStyle("text", useToolStyleStore.getState().settings),
       };
       addAnnotation(a);
     }
@@ -34,5 +37,6 @@ export function useTextTool() {
     },
     submit,
     cancel: () => ts.setTextPos(null),
+    style,
   };
 }

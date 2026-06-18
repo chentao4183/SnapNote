@@ -1,11 +1,14 @@
 import { useRef } from "react";
 import type Konva from "konva";
 import { useEditorStore } from "../store/editorStore";
+import { useToolStyleStore } from "../store/toolStyleStore";
 import { useToolState } from "../store/toolState";
-import { DEFAULT_STYLE, type Annotation, type Rect } from "../types/annotation";
+import { annotationFieldsFromToolStyle } from "../style/styleMapping";
+import type { Annotation, Rect } from "../types/annotation";
 
 export function useRectTool() {
   const addAnnotation = useEditorStore((s) => s.addAnnotation);
+  const style = useToolStyleStore((s) => s.settings.rect);
   const ts = useToolState();
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -36,12 +39,19 @@ export function useRectTool() {
       onMouseUp: () => {
         const r = ts.rectPreview;
         if (r && r.width > 5 && r.height > 5) {
-          const a: Annotation = { id: crypto.randomUUID(), type: "rect", rect: r, style: { ...DEFAULT_STYLE } };
+          const a: Annotation = {
+            id: crypto.randomUUID(),
+            type: "rect",
+            rect: r,
+            ...annotationFieldsFromToolStyle("rect", useToolStyleStore.getState().settings),
+          };
           addAnnotation(a);
         }
         startRef.current = null;
         ts.setRectPreview(null);
       },
     },
+    shape: style.shape,
+    style,
   };
 }

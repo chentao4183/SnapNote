@@ -1,11 +1,14 @@
 import { useRef } from "react";
 import type Konva from "konva";
 import { useEditorStore } from "../store/editorStore";
+import { useToolStyleStore } from "../store/toolStyleStore";
 import { useToolState } from "../store/toolState";
-import { DEFAULT_STYLE, type Annotation } from "../types/annotation";
+import { annotationFieldsFromToolStyle } from "../style/styleMapping";
+import type { Annotation } from "../types/annotation";
 
 export function useArrowTool() {
   const addAnnotation = useEditorStore((s) => s.addAnnotation);
+  const style = useToolStyleStore((s) => s.settings.arrow);
   const ts = useToolState();
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -33,7 +36,7 @@ export function useArrowTool() {
             id: crypto.randomUUID(),
             type: "arrow",
             arrow: { startX: pr.sx, startY: pr.sy, endX: pr.ex, endY: pr.ey },
-            style: { ...DEFAULT_STYLE },
+            ...annotationFieldsFromToolStyle("arrow", useToolStyleStore.getState().settings),
           };
           addAnnotation(a);
         }
@@ -41,5 +44,6 @@ export function useArrowTool() {
         ts.setArrowPreview(null);
       },
     },
+    style,
   };
 }

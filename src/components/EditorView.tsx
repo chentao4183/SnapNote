@@ -55,6 +55,10 @@ export default function EditorView({ onExit }: Props) {
           x={active.text.textPos.x}
           y={active.text.textPos.y - 28}
           initial=""
+          background="transparent"
+          color={active.text.style.color}
+          fontSize={active.text.style.fontSize}
+          fontFamily={active.text.style.fontFamily}
           onSubmit={active.text.submit}
           onCancel={active.text.cancel}
         />

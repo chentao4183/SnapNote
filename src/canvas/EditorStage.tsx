@@ -51,8 +51,13 @@ export default function EditorStage({ active, onEditText }: Props) {
       <AnnotationLayer selectable onEditText={onEditText} crop={crop} />
       {/* Preview layer for in-progress annotations */}
       <Layer listening={false} clipX={crop.x} clipY={crop.y} clipWidth={crop.width} clipHeight={crop.height}>
-        {active.kind === "smart" && active.smart.previewRect && renderBounds(active.smart.previewRect, active.smart.shape)}
-        {active.kind === "smart" && !active.smart.previewRect && active.smart.rect && renderBounds(active.smart.rect, active.smart.shape)}
+        {active.kind === "smart" &&
+          active.smart.previewRect &&
+          renderBounds(active.smart.previewRect, active.smart.shape, active.smart.style.color, active.smart.style.strokeWidth)}
+        {active.kind === "smart" &&
+          !active.smart.previewRect &&
+          active.smart.rect &&
+          renderBounds(active.smart.rect, active.smart.shape, active.smart.style.color, active.smart.style.strokeWidth)}
         {active.kind === "smart" && active.smart.arrowStart && active.smart.arrowEnd && (
           <Arrow
             points={[
@@ -61,22 +66,15 @@ export default function EditorStage({ active, onEditText }: Props) {
               active.smart.arrowEnd.x,
               active.smart.arrowEnd.y,
             ]}
-            stroke="#ff4757"
-            strokeWidth={3}
-            fill="#ff4757"
+            stroke={active.smart.style.color}
+            strokeWidth={active.smart.style.strokeWidth}
+            fill={active.smart.style.color}
             pointerLength={10}
             pointerWidth={10}
           />
         )}
         {active.kind === "rect" && active.rect.preview && (
-          <Rect
-            x={active.rect.preview.x}
-            y={active.rect.preview.y}
-            width={active.rect.preview.width}
-            height={active.rect.preview.height}
-            stroke="#ff4757"
-            strokeWidth={3}
-          />
+          renderBounds(active.rect.preview, active.rect.shape, active.rect.style.color, active.rect.style.strokeWidth)
         )}
         {active.kind === "mosaic" && active.mosaic.preview && (
           <Rect
@@ -92,11 +90,12 @@ export default function EditorStage({ active, onEditText }: Props) {
         {active.kind === "arrow" && active.arrow.preview && (
           <Arrow
             points={[active.arrow.preview.sx, active.arrow.preview.sy, active.arrow.preview.ex, active.arrow.preview.ey]}
-            stroke="#ff4757"
-            strokeWidth={3}
-            fill="#ff4757"
-            pointerLength={10}
-            pointerWidth={10}
+            stroke={active.arrow.style.color}
+            strokeWidth={active.arrow.style.strokeWidth}
+            fill={active.arrow.style.color}
+            pointerLength={active.arrow.style.arrowHeadSize}
+            pointerWidth={active.arrow.style.arrowHeadSize}
+            dash={active.arrow.style.lineStyle === "dashed" ? [10, 6] : undefined}
           />
         )}
       </Layer>
@@ -104,7 +103,12 @@ export default function EditorStage({ active, onEditText }: Props) {
   );
 }
 
-function renderBounds(rect: { x: number; y: number; width: number; height: number }, shape: "rect" | "ellipse") {
+function renderBounds(
+  rect: { x: number; y: number; width: number; height: number },
+  shape: "rect" | "ellipse",
+  color: string,
+  strokeWidth: number,
+) {
   if (shape === "ellipse") {
     return (
       <Ellipse
@@ -112,10 +116,10 @@ function renderBounds(rect: { x: number; y: number; width: number; height: numbe
         y={rect.y + rect.height / 2}
         radiusX={rect.width / 2}
         radiusY={rect.height / 2}
-        stroke="#ff4757"
-        strokeWidth={3}
+        stroke={color}
+        strokeWidth={strokeWidth}
       />
     );
   }
-  return <Rect x={rect.x} y={rect.y} width={rect.width} height={rect.height} stroke="#ff4757" strokeWidth={3} />;
+  return <Rect x={rect.x} y={rect.y} width={rect.width} height={rect.height} stroke={color} strokeWidth={strokeWidth} />;
 }
