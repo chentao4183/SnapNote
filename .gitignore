@@ -20,6 +20,8 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+# Windows: stray file from "cmd > nul" redirections
+nul
 
 # Brainstorm scratch (superpowers visual companion)
 .superpowers/
