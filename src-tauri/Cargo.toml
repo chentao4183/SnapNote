@@ -1,6 +1,6 @@
 [package]
 name = "snapnote"
-version = "0.2.0"
+version = "0.2.1"
 description = "SnapNote - a Windows screenshot smart-annotation tool"
 authors = ["you"]
 edition = "2021"
