@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useEditorStore } from "../store/editorStore";
 import { useNumberingStore } from "../store/numberingStore";
 import { useToolStyleStore } from "../store/toolStyleStore";
@@ -11,15 +12,23 @@ import type {
   TextBadgePosition,
 } from "../types/numbering";
 
-const BADGE_COLORS = ["#1677ff", "#ff4757", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
+const BADGE_COLORS = ["#ff4757", "#1890ff", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
+
+type NumberingControlsMode = "toggle" | "details";
+
+interface Props {
+  tool: NumberedTool;
+  mode?: NumberingControlsMode;
+}
 
 /**
- * Per-tool numbering controls rendered inside each tool's style panel row.
+ * Per-tool numbering controls for StylePanel.
  *
- * Layout: 自动编号 [toggle] | position controls (context-specific) | badge style | reset.
- * Compact: collapses to a second row visually via flex-wrap on the parent.
+ * The panel renders this component twice:
+ * - mode="toggle": first row, after the tool's base style controls.
+ * - mode="details": second row, only when automatic numbering is enabled.
  */
-export default function NumberingControls({ tool }: { tool: NumberedTool }) {
+export default function NumberingControls({ tool, mode = "details" }: Props) {
   const settings = useNumberingStore((s) => s.settings);
   const updateEnabled = useNumberingStore((s) => s.updateEnabled);
   const updateToolPlacement = useNumberingStore((s) => s.updateToolPlacement);
@@ -29,9 +38,9 @@ export default function NumberingControls({ tool }: { tool: NumberedTool }) {
   const smartShape = useToolStyleStore((s) => s.settings.smart.shape);
   const enabled = settings.enabledByTool[tool];
 
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 6, paddingLeft: 6, borderLeft: "1px solid #cfd8dc" }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+  if (mode === "toggle") {
+    return (
+      <label style={toggleStyle}>
         <input
           type="checkbox"
           checked={enabled}
@@ -40,22 +49,28 @@ export default function NumberingControls({ tool }: { tool: NumberedTool }) {
         />
         <span>自动编号</span>
       </label>
+    );
+  }
 
-      {enabled && tool === "smart" && (
+  if (!enabled) return null;
+
+  return (
+    <div style={detailsRowStyle}>
+      {tool === "smart" && (
         <SmartPositionControls
           placement={settings.positionByTool.smart}
           shape={smartShape}
           onChange={(patch) => updateToolPlacement("smart", { ...settings.positionByTool.smart, ...patch })}
         />
       )}
-      {enabled && tool === "rect" && (
+      {tool === "rect" && (
         <RectPositionControls
           placement={settings.positionByTool.rect}
           shape={rectShape}
           onChange={(patch) => updateToolPlacement("rect", { ...settings.positionByTool.rect, ...patch })}
         />
       )}
-      {enabled && tool === "arrow" && (
+      {tool === "arrow" && (
         <Segmented
           value={settings.positionByTool.arrow}
           options={[
@@ -63,28 +78,24 @@ export default function NumberingControls({ tool }: { tool: NumberedTool }) {
             { label: "中点", value: "middle" },
             { label: "终点", value: "end" },
           ]}
-          onChange={(v) => updateToolPlacement("arrow", v)}
+          onChange={(value) => updateToolPlacement("arrow", value)}
         />
       )}
-      {enabled && tool === "text" && (
+      {tool === "text" && (
         <Segmented
           value={settings.positionByTool.text}
           options={[
             { label: "左", value: "left" },
             { label: "右", value: "right" },
           ]}
-          onChange={(v) => updateToolPlacement("text", v)}
+          onChange={(value) => updateToolPlacement("text", value)}
         />
       )}
 
-      {enabled && (
-        <>
-          <BadgeStyleControls style={settings.badgeStyle} onChange={updateBadgeStyle} />
-          <button onClick={resetNextNumber} style={resetButtonStyle} title="仅影响之后新建的编号">
-            重置编号为 1
-          </button>
-        </>
-      )}
+      <BadgeStyleControls style={settings.badgeStyle} onChange={updateBadgeStyle} />
+      <button onClick={resetNextNumber} style={resetButtonStyle} title="仅影响之后新建的编号">
+        重置编号为 1
+      </button>
     </div>
   );
 }
@@ -94,9 +105,21 @@ function SmartPositionControls({
   shape,
   onChange,
 }: {
-  placement: { anchor: SmartBadgeAnchor; targetRectPosition: RectBadgePosition; targetEllipsePosition: EllipseBadgePosition; arrowPosition: ArrowBadgePosition; labelPosition: TextBadgePosition };
+  placement: {
+    anchor: SmartBadgeAnchor;
+    targetRectPosition: RectBadgePosition;
+    targetEllipsePosition: EllipseBadgePosition;
+    arrowPosition: ArrowBadgePosition;
+    labelPosition: TextBadgePosition;
+  };
   shape: "rect" | "ellipse";
-  onChange: (patch: Partial<{ anchor: SmartBadgeAnchor; targetRectPosition: RectBadgePosition; targetEllipsePosition: EllipseBadgePosition; arrowPosition: ArrowBadgePosition; labelPosition: TextBadgePosition }>) => void;
+  onChange: (patch: Partial<{
+    anchor: SmartBadgeAnchor;
+    targetRectPosition: RectBadgePosition;
+    targetEllipsePosition: EllipseBadgePosition;
+    arrowPosition: ArrowBadgePosition;
+    labelPosition: TextBadgePosition;
+  }>) => void;
 }) {
   return (
     <>
@@ -107,7 +130,7 @@ function SmartPositionControls({
           { label: "箭头", value: "arrow" },
           { label: "标签", value: "label" },
         ]}
-        onChange={(v) => onChange({ anchor: v })}
+        onChange={(value) => onChange({ anchor: value })}
       />
       {placement.anchor === "target" &&
         (shape === "ellipse" ? (
@@ -118,9 +141,9 @@ function SmartPositionControls({
               { label: "右", value: "right" },
               { label: "上", value: "top" },
               { label: "下", value: "bottom" },
-              { label: "中", value: "center" },
+              { label: "居中", value: "center" },
             ]}
-            onChange={(v) => onChange({ targetEllipsePosition: v })}
+            onChange={(value) => onChange({ targetEllipsePosition: value })}
           />
         ) : (
           <Segmented
@@ -132,7 +155,7 @@ function SmartPositionControls({
               { label: "右下", value: "bottom-right" },
               { label: "居中", value: "center" },
             ]}
-            onChange={(v) => onChange({ targetRectPosition: v })}
+            onChange={(value) => onChange({ targetRectPosition: value })}
           />
         ))}
       {placement.anchor === "arrow" && (
@@ -143,7 +166,7 @@ function SmartPositionControls({
             { label: "中点", value: "middle" },
             { label: "终点", value: "end" },
           ]}
-          onChange={(v) => onChange({ arrowPosition: v })}
+          onChange={(value) => onChange({ arrowPosition: value })}
         />
       )}
       {placement.anchor === "label" && (
@@ -153,7 +176,7 @@ function SmartPositionControls({
             { label: "左", value: "left" },
             { label: "右", value: "right" },
           ]}
-          onChange={(v) => onChange({ labelPosition: v })}
+          onChange={(value) => onChange({ labelPosition: value })}
         />
       )}
     </>
@@ -178,12 +201,13 @@ function RectPositionControls({
           { label: "右", value: "right" },
           { label: "上", value: "top" },
           { label: "下", value: "bottom" },
-          { label: "中", value: "center" },
+          { label: "居中", value: "center" },
         ]}
-        onChange={(v) => onChange({ ellipsePosition: v })}
+        onChange={(value) => onChange({ ellipsePosition: value })}
       />
     );
   }
+
   return (
     <Segmented
       value={placement.rectPosition}
@@ -194,7 +218,7 @@ function RectPositionControls({
         { label: "右下", value: "bottom-right" },
         { label: "居中", value: "center" },
       ]}
-      onChange={(v) => onChange({ rectPosition: v })}
+      onChange={(value) => onChange({ rectPosition: value })}
     />
   );
 }
@@ -258,7 +282,7 @@ function BadgeStyleControls({
           { label: "圆角", value: "rounded" },
           { label: "圆", value: "circle" },
         ]}
-        onChange={(v) => onChange({ shape: v })}
+        onChange={(value) => onChange({ shape: value })}
       />
       <label style={{ display: "flex", alignItems: "center", gap: 3 }}>
         <span>字号</span>
@@ -279,15 +303,6 @@ function BadgeStyleControls({
     </span>
   );
 }
-
-const resetButtonStyle: React.CSSProperties = {
-  padding: "2px 6px",
-  background: "#fff",
-  color: "#263238",
-  border: "1px solid #1783ff",
-  borderRadius: 0,
-  cursor: "pointer",
-};
 
 function Segmented<T extends string>({
   value,
@@ -318,3 +333,31 @@ function Segmented<T extends string>({
     </div>
   );
 }
+
+const toggleStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  marginLeft: 6,
+  paddingLeft: 6,
+  borderLeft: "1px solid #cfd8dc",
+  cursor: "pointer",
+};
+
+const detailsRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  paddingTop: 4,
+  borderTop: "1px solid #d8e3ea",
+  whiteSpace: "nowrap",
+};
+
+const resetButtonStyle: CSSProperties = {
+  padding: "2px 6px",
+  background: "#fff",
+  color: "#263238",
+  border: "1px solid #1783ff",
+  borderRadius: 0,
+  cursor: "pointer",
+};

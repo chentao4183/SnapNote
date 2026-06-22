@@ -23,6 +23,9 @@ export const BADGE_HORIZONTAL_PADDING = 6;
 export const BADGE_VERTICAL_PADDING = 3;
 export const BADGE_MIN_SIZE = 18;
 export const BADGE_ANCHOR_GAP = 4;
+export const ARROW_BADGE_END_GAP = 12;
+export const ARROW_BADGE_LINE_GAP = 8;
+export const ARROW_BADGE_VERTICAL_EPSILON = 0.2;
 
 /**
  * Measures a number badge. `measureText` returns the rendered width of a string
@@ -131,14 +134,22 @@ export function ellipseBadgeBox(bounds: Rect, box: BadgeBox, position: EllipseBa
 }
 
 /**
- * Badge placement along an arrow. Missing start coords fall back to the end
- * point so legacy data without startX/startY does not crash.
+ * Badge placement along an arrow. The badge is offset off the line instead of
+ * sitting on top of it. End placement is pulled back far enough that the whole
+ * badge sits before the arrow head, then offset, so arrow head size changes do
+ * not collide with the badge. Near-vertical arrows place the badge on the left
+ * side.
  */
 export function arrowBadgeBox(arrow: ArrowData, box: BadgeBox, position: ArrowBadgePosition, crop: Rect): Rect {
   const startX = arrow.startX ?? arrow.endX;
   const startY = arrow.startY ?? arrow.endY;
   const endX = arrow.endX;
   const endY = arrow.endY;
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const length = Math.hypot(dx, dy);
+  const ux = length > 0 ? dx / length : 1;
+  const uy = length > 0 ? dy / length : 0;
 
   let cx: number;
   let cy: number;
@@ -153,13 +164,25 @@ export function arrowBadgeBox(arrow: ArrowData, box: BadgeBox, position: ArrowBa
       cy = (startY + endY) / 2;
       break;
     case "end":
-      cx = endX;
-      cy = endY;
+      cx = endX - ux * (box.width / 2 + ARROW_BADGE_END_GAP);
+      cy = endY - uy * (box.width / 2 + ARROW_BADGE_END_GAP);
       break;
   }
 
-  const x = cx - box.width / 2;
-  const y = cy - box.height / 2;
+  const offset = box.height / 2 + ARROW_BADGE_LINE_GAP;
+  let nx: number;
+  let ny: number;
+
+  if (Math.abs(ux) < ARROW_BADGE_VERTICAL_EPSILON) {
+    nx = -1;
+    ny = 0;
+  } else {
+    nx = 0;
+    ny = -1;
+  }
+
+  const x = cx + nx * offset - box.width / 2;
+  const y = cy + ny * offset - box.height / 2;
   return keepRectInsideCrop({ x, y, width: box.width, height: box.height }, crop);
 }
 

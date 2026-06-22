@@ -10,6 +10,8 @@ import {
   smartBadgeBox,
   textBadgeBox,
   BADGE_ANCHOR_GAP,
+  ARROW_BADGE_END_GAP,
+  ARROW_BADGE_LINE_GAP,
   BADGE_MIN_SIZE,
 } from "./numberBadge";
 
@@ -132,41 +134,52 @@ describe("ellipseBadgeBox", () => {
 
 describe("arrowBadgeBox", () => {
   const box = { width: 20, height: 20 };
+  const lineOffset = box.height / 2 + ARROW_BADGE_LINE_GAP;
 
-  it("start centers on start point", () => {
+  it("start sits above a horizontal arrow start point", () => {
     const out = arrowBadgeBox(
-      { startX: 10, startY: 20, endX: 100, endY: 200 },
+      { startX: 10, startY: 100, endX: 100, endY: 100 },
       box,
       "start",
       CROP,
     );
     expect(out.x).toBe(10 - 10);
-    expect(out.y).toBe(20 - 10);
+    expect(out.y).toBe(100 - lineOffset - 10);
   });
-  it("middle centers on the midpoint", () => {
+  it("middle sits above a horizontal arrow midpoint", () => {
     const out = arrowBadgeBox(
-      { startX: 0, startY: 0, endX: 100, endY: 200 },
+      { startX: 0, startY: 100, endX: 100, endY: 100 },
       box,
       "middle",
       CROP,
     );
     expect(out.x).toBe(50 - 10);
-    expect(out.y).toBe(100 - 10);
+    expect(out.y).toBe(100 - lineOffset - 10);
   });
-  it("end centers on end point", () => {
+  it("end is inset by half badge width plus gap, then placed above the line", () => {
     const out = arrowBadgeBox(
-      { startX: 0, startY: 0, endX: 100, endY: 200 },
+      { startX: 0, startY: 100, endX: 100, endY: 100 },
       box,
       "end",
       CROP,
     );
-    expect(out.x).toBe(100 - 10);
-    expect(out.y).toBe(200 - 10);
+    expect(out.x).toBe(100 - box.width - ARROW_BADGE_END_GAP);
+    expect(out.y).toBe(100 - lineOffset - 10);
+  });
+  it("near-vertical arrows place badges on the left side", () => {
+    const out = arrowBadgeBox(
+      { startX: 100, startY: 0, endX: 100, endY: 100 },
+      box,
+      "middle",
+      CROP,
+    );
+    expect(out.x).toBe(100 - lineOffset - 10);
+    expect(out.y).toBe(50 - 10);
   });
   it("falls back to end point when start is missing", () => {
     const out = arrowBadgeBox({ endX: 30, endY: 40 }, box, "start", CROP);
     expect(out.x).toBe(30 - 10);
-    expect(out.y).toBe(40 - 10);
+    expect(out.y).toBe(40 - lineOffset - 10);
   });
 });
 

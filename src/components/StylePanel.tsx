@@ -1,6 +1,7 @@
+import type { CSSProperties, ReactNode } from "react";
 import { useToolStyleStore } from "../store/toolStyleStore";
-import { TOOL_STYLE_LIMITS } from "../types/toolStyle";
 import type { ToolType } from "../types/annotation";
+import { TOOL_STYLE_LIMITS } from "../types/toolStyle";
 import NumberingControls from "./NumberingControls";
 
 const PRESET_COLORS = ["#ff4757", "#1890ff", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
@@ -29,10 +30,10 @@ export default function StylePanel({ tool, placement }: Props) {
         top: placement === "below" ? 44 : undefined,
         bottom: placement === "above" ? 44 : undefined,
         left: 0,
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 8,
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 4,
         padding: "4px 6px",
         background: "#f7f7f7",
         border: "1px solid #1783ff",
@@ -43,102 +44,119 @@ export default function StylePanel({ tool, placement }: Props) {
         zIndex: 51,
         whiteSpace: "nowrap",
         maxWidth: "calc(100vw - 8px)",
+        overflowX: "auto",
       }}
     >
       {tool === "smart" && (
         <>
-          <ColorPicker value={settings.smart.color} onChange={(color) => updateTool("smart", { color })} />
-          <NumberSlider
-            label="线宽"
-            value={settings.smart.strokeWidth}
-            min={TOOL_STYLE_LIMITS.strokeWidth.min}
-            max={TOOL_STYLE_LIMITS.strokeWidth.max}
-            onChange={(strokeWidth) => updateTool("smart", { strokeWidth })}
-          />
-          <Segmented
-            value={settings.smart.shape}
-            options={[
-              { label: "矩形", value: "rect" },
-              { label: "椭圆", value: "ellipse" },
-            ]}
-            onChange={(shape) => updateTool("smart", { shape })}
-          />
-          <NumberSlider
-            label="字号"
-            value={settings.smart.fontSize}
-            min={TOOL_STYLE_LIMITS.fontSize.min}
-            max={TOOL_STYLE_LIMITS.fontSize.max}
-            onChange={(fontSize) => updateTool("smart", { fontSize })}
-          />
-          <FontSelect value={settings.smart.fontFamily} onChange={(fontFamily) => updateTool("smart", { fontFamily })} />
-          <NumberingControls tool="smart" />
+          <PanelRow>
+            <ColorPicker value={settings.smart.color} onChange={(color) => updateTool("smart", { color })} />
+            <NumberSlider
+              label="线宽"
+              value={settings.smart.strokeWidth}
+              min={TOOL_STYLE_LIMITS.strokeWidth.min}
+              max={TOOL_STYLE_LIMITS.strokeWidth.max}
+              onChange={(strokeWidth) => updateTool("smart", { strokeWidth })}
+            />
+            <Segmented
+              value={settings.smart.shape}
+              options={[
+                { label: "矩形", value: "rect" },
+                { label: "椭圆", value: "ellipse" },
+              ]}
+              onChange={(shape) => updateTool("smart", { shape })}
+            />
+            <NumberSlider
+              label="字号"
+              value={settings.smart.fontSize}
+              min={TOOL_STYLE_LIMITS.fontSize.min}
+              max={TOOL_STYLE_LIMITS.fontSize.max}
+              onChange={(fontSize) => updateTool("smart", { fontSize })}
+            />
+            <FontSelect value={settings.smart.fontFamily} onChange={(fontFamily) => updateTool("smart", { fontFamily })} />
+            <NumberingControls tool="smart" mode="toggle" />
+          </PanelRow>
+          <NumberingControls tool="smart" mode="details" />
         </>
       )}
       {tool === "rect" && (
         <>
-          <ColorPicker value={settings.rect.color} onChange={(color) => updateTool("rect", { color })} />
-          <NumberSlider
-            label="线宽"
-            value={settings.rect.strokeWidth}
-            min={TOOL_STYLE_LIMITS.strokeWidth.min}
-            max={TOOL_STYLE_LIMITS.strokeWidth.max}
-            onChange={(strokeWidth) => updateTool("rect", { strokeWidth })}
-          />
-          <Segmented
-            value={settings.rect.shape}
-            options={[
-              { label: "矩形", value: "rect" },
-              { label: "椭圆", value: "ellipse" },
-            ]}
-            onChange={(shape) => updateTool("rect", { shape })}
-          />
-          <NumberingControls tool="rect" />
+          <PanelRow>
+            <ColorPicker value={settings.rect.color} onChange={(color) => updateTool("rect", { color })} />
+            <NumberSlider
+              label="线宽"
+              value={settings.rect.strokeWidth}
+              min={TOOL_STYLE_LIMITS.strokeWidth.min}
+              max={TOOL_STYLE_LIMITS.strokeWidth.max}
+              onChange={(strokeWidth) => updateTool("rect", { strokeWidth })}
+            />
+            <Segmented
+              value={settings.rect.shape}
+              options={[
+                { label: "矩形", value: "rect" },
+                { label: "椭圆", value: "ellipse" },
+              ]}
+              onChange={(shape) => updateTool("rect", { shape })}
+            />
+            <NumberingControls tool="rect" mode="toggle" />
+          </PanelRow>
+          <NumberingControls tool="rect" mode="details" />
         </>
       )}
       {tool === "arrow" && (
         <>
-          <ColorPicker value={settings.arrow.color} onChange={(color) => updateTool("arrow", { color })} />
-          <NumberSlider
-            label="线宽"
-            value={settings.arrow.strokeWidth}
-            min={TOOL_STYLE_LIMITS.strokeWidth.min}
-            max={TOOL_STYLE_LIMITS.strokeWidth.max}
-            onChange={(strokeWidth) => updateTool("arrow", { strokeWidth })}
-          />
-          <Segmented
-            value={settings.arrow.lineStyle}
-            options={[
-              { label: "实线", value: "solid" },
-              { label: "虚线", value: "dashed" },
-            ]}
-            onChange={(lineStyle) => updateTool("arrow", { lineStyle })}
-          />
-          <NumberSlider
-            label="箭头"
-            value={settings.arrow.arrowHeadSize}
-            min={TOOL_STYLE_LIMITS.arrowHeadSize.min}
-            max={TOOL_STYLE_LIMITS.arrowHeadSize.max}
-            onChange={(arrowHeadSize) => updateTool("arrow", { arrowHeadSize })}
-          />
-          <NumberingControls tool="arrow" />
+          <PanelRow>
+            <ColorPicker value={settings.arrow.color} onChange={(color) => updateTool("arrow", { color })} />
+            <NumberSlider
+              label="线宽"
+              value={settings.arrow.strokeWidth}
+              min={TOOL_STYLE_LIMITS.strokeWidth.min}
+              max={TOOL_STYLE_LIMITS.strokeWidth.max}
+              onChange={(strokeWidth) => updateTool("arrow", { strokeWidth })}
+            />
+            <Segmented
+              value={settings.arrow.lineStyle}
+              options={[
+                { label: "实线", value: "solid" },
+                { label: "虚线", value: "dashed" },
+              ]}
+              onChange={(lineStyle) => updateTool("arrow", { lineStyle })}
+            />
+            <NumberSlider
+              label="箭头"
+              value={settings.arrow.arrowHeadSize}
+              min={TOOL_STYLE_LIMITS.arrowHeadSize.min}
+              max={TOOL_STYLE_LIMITS.arrowHeadSize.max}
+              onChange={(arrowHeadSize) => updateTool("arrow", { arrowHeadSize })}
+            />
+            <NumberingControls tool="arrow" mode="toggle" />
+          </PanelRow>
+          <NumberingControls tool="arrow" mode="details" />
         </>
       )}
       {tool === "text" && (
         <>
-          <ColorPicker value={settings.text.color} onChange={(color) => updateTool("text", { color })} />
-          <NumberSlider
-            label="字号"
-            value={settings.text.fontSize}
-            min={TOOL_STYLE_LIMITS.fontSize.min}
-            max={TOOL_STYLE_LIMITS.fontSize.max}
-            onChange={(fontSize) => updateTool("text", { fontSize })}
-          />
-          <FontSelect value={settings.text.fontFamily} onChange={(fontFamily) => updateTool("text", { fontFamily })} />
-          <NumberingControls tool="text" />
+          <PanelRow>
+            <ColorPicker value={settings.text.color} onChange={(color) => updateTool("text", { color })} />
+            <NumberSlider
+              label="字号"
+              value={settings.text.fontSize}
+              min={TOOL_STYLE_LIMITS.fontSize.min}
+              max={TOOL_STYLE_LIMITS.fontSize.max}
+              onChange={(fontSize) => updateTool("text", { fontSize })}
+            />
+            <FontSelect value={settings.text.fontFamily} onChange={(fontFamily) => updateTool("text", { fontFamily })} />
+            <NumberingControls tool="text" mode="toggle" />
+          </PanelRow>
+          <NumberingControls tool="text" mode="details" />
         </>
       )}
     </div>
   );
+}
+
+function PanelRow({ children }: { children: ReactNode }) {
+  return <div style={panelRowStyle}>{children}</div>;
 }
 
 function ColorPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -260,3 +278,11 @@ function FontSelect({ value, onChange }: { value: string; onChange: (value: stri
     </select>
   );
 }
+
+const panelRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  whiteSpace: "nowrap",
+  flexWrap: "nowrap",
+};
