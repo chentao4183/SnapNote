@@ -71,7 +71,9 @@ export default function TextLabelShape({ a, selectable = false, onEditText }: Pr
         });
       }}
     >
-      <Rect x={0} y={0} width={boxWidth} height={boxHeight} fill={a.style.bgColor} cornerRadius={4} />
+      {a.type !== "text" && (
+        <Rect x={0} y={0} width={boxWidth} height={boxHeight} fill={a.style.bgColor} cornerRadius={4} />
+      )}
       <Text
         x={LABEL_PAD_X}
         y={LABEL_PAD_Y}

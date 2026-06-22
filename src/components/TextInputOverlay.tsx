@@ -10,6 +10,12 @@ interface Props {
   color?: string;
   fontSize?: number;
   fontFamily?: string;
+  /**
+   * Horizontal inner padding. Defaults to 12 (matches the legacy input look
+   * for the smart/selection overlays). Pass 10 for the transparent text tool
+   * overlay so it lines up with LABEL_PAD_X in the rendered label box.
+   */
+  padX?: number;
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }
@@ -24,6 +30,7 @@ export default function TextInputOverlay({
   color = "white",
   fontSize = 13,
   fontFamily = "",
+  padX = 12,
   onSubmit,
   onCancel,
 }: Props) {
@@ -39,8 +46,8 @@ export default function TextInputOverlay({
 
   useEffect(() => {
     if (!measureRef.current) return;
-    setWidth(Math.max(60, measureRef.current.offsetWidth + 24));
-  }, [text, fontSize, fontFamily]);
+    setWidth(Math.max(60, measureRef.current.offsetWidth + padX * 2));
+  }, [text, fontSize, fontFamily, padX]);
 
   const effectiveFontFamily = fontFamily || "system-ui, -apple-system, Segoe UI, Microsoft YaHei, sans-serif";
   const height = fontSize + 10;
@@ -76,7 +83,7 @@ export default function TextInputOverlay({
           color,
           border: "none",
           borderRadius: 4,
-          padding: "5px 12px",
+          padding: `5px ${padX}px`,
           fontSize,
           fontFamily: effectiveFontFamily,
           fontWeight: 500,

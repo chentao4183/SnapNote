@@ -47,6 +47,7 @@ export default function EditorView({ onExit }: Props) {
           color="#ffffff"
           fontSize={active.smart.style.fontSize}
           fontFamily={active.smart.style.fontFamily}
+          padX={10}
           onSubmit={active.smart.submitText}
           onCancel={active.smart.cancelText}
         />
@@ -54,12 +55,13 @@ export default function EditorView({ onExit }: Props) {
       {active.kind === "text" && active.text.textPos && (
         <TextInputOverlay
           x={active.text.textPos.x}
-          y={active.text.textPos.y - 28}
+          y={active.text.textPos.y}
           initial=""
           background="transparent"
           color={active.text.style.color}
           fontSize={active.text.style.fontSize}
           fontFamily={active.text.style.fontFamily}
+          padX={10}
           onSubmit={active.text.submit}
           onCancel={active.text.cancel}
         />
