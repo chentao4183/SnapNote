@@ -156,8 +156,12 @@ export function arrowBadgeBox(arrow: ArrowData, box: BadgeBox, position: ArrowBa
 
   switch (position) {
     case "start":
-      cx = startX;
-      cy = startY;
+      // Offset the badge along the arrow direction so it sits on the line's
+      // side rather than behind the start point. The badge shifts toward the
+      // end by half its size, so its near edge meets the start point and the
+      // badge rides above the line in the arrow's direction.
+      cx = startX + ux * (box.width / 2);
+      cy = startY + uy * (box.height / 2);
       break;
     case "middle":
       cx = (startX + endX) / 2;

@@ -3,6 +3,7 @@ import type Konva from "konva";
 import { smartArrowStart } from "../geometry/arrowAnchor";
 import { labelSide, labelVerticalAnchor } from "../geometry/labelBox";
 import { applyNumberBadgeIfEnabled } from "../numbering/applyNumbering";
+import { pendingNumberBadgeForTool } from "../numbering/pendingNumberBadge";
 import { useEditorStore } from "../store/editorStore";
 import { useNumberingStore } from "../store/numberingStore";
 import { useToolStyleStore } from "../store/toolStyleStore";
@@ -15,6 +16,7 @@ type Phase = "idle" | "drawing-rect" | "selecting-label-position" | "editing-lab
 export function useSmartAnnotationTool() {
   const addAnnotation = useEditorStore((s) => s.addAnnotation);
   const style = useToolStyleStore((s) => s.settings.smart);
+  const smartPlacement = useNumberingStore((s) => s.settings.positionByTool.smart);
   const ts = useToolState();
   const phaseRef = useRef<Phase>("idle");
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -84,10 +86,16 @@ export function useSmartAnnotationTool() {
       }
 
       const p = pos(e);
+      const numberingSettings = useNumberingStore.getState().settings;
+      const pendingNumberBadge =
+        numberingSettings.positionByTool.smart.anchor === "label"
+          ? pendingNumberBadgeForTool("smart", numberingSettings, useEditorStore.getState().nextNumber)
+          : null;
       ts.setSmart({
         arrowStart: smartArrowStart(style.shape, rectRef.current, p),
         arrowEnd: p,
         textPos: p,
+        pendingSmartNumberBadge: pendingNumberBadge,
       });
       setPhase("editing-label");
     },
@@ -117,10 +125,14 @@ export function useSmartAnnotationTool() {
           labelY: labelAnchor.y,
         },
       };
-      const numberingSettings = useNumberingStore.getState().settings;
-      const nextNumber = useEditorStore.getState().nextNumber;
-      const { annotation, consumed } = applyNumberBadgeIfEnabled("smart", base, numberingSettings, nextNumber);
-      addAnnotation(annotation, { consumedNumber: consumed });
+      if (ts.pendingSmartNumberBadge) {
+        addAnnotation({ ...base, numberBadge: ts.pendingSmartNumberBadge }, { consumedNumber: true });
+      } else {
+        const numberingSettings = useNumberingStore.getState().settings;
+        const nextNumber = useEditorStore.getState().nextNumber;
+        const { annotation, consumed } = applyNumberBadgeIfEnabled("smart", base, numberingSettings, nextNumber);
+        addAnnotation(annotation, { consumedNumber: consumed });
+      }
     }
     reset();
   }
@@ -140,6 +152,8 @@ export function useSmartAnnotationTool() {
     arrowStart: ts.arrowStart,
     arrowEnd: ts.arrowEnd,
     textPos: ts.textPos,
+    pendingNumberBadge: ts.pendingSmartNumberBadge,
+    smartBadgeLabelPosition: smartPlacement.labelPosition,
     textAlign: ts.rect && ts.textPos && labelSide(ts.textPos, ts.rect) === "left" ? ("right" as const) : ("left" as const),
     textVerticalAnchor: ts.rect && ts.textPos ? labelVerticalAnchor(ts.textPos, ts.rect) : ("top" as const),
     shape: style.shape,

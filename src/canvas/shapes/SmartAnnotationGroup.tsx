@@ -32,10 +32,10 @@ export default function SmartAnnotationGroup({ a, selectable = false, onEditText
         : null;
   const headSize = a.arrowHeadSize ?? 10;
 
-  // Compute the smart badge box using the same label metrics/positioning path as
-  // the label itself, so the anchor follows the rendered visual label box.
+  // Target/arrow smart badges stay external. Text-anchored smart badges are
+  // embedded by TextLabelShape so the badge participates in label layout.
   let badgeBox = null;
-  if (a.numberBadge && a.arrow) {
+  if (a.numberBadge && a.arrow && smartPlacement.anchor !== "label") {
     const labelText = a.note ?? "";
     const { width: labelW, height: labelH } = labelBoxSize(labelText, a.style, a.fontFamily);
     const labelX = a.arrow.labelX ?? a.arrow.endX;

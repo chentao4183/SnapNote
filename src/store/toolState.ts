@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Corner, Rect } from "../types/annotation";
+import type { Corner, NumberBadge, Rect } from "../types/annotation";
 
 /**
  * Ephemeral, cross-component tool state.
@@ -26,6 +26,7 @@ interface SmartDraft {
   arrowStart: { x: number; y: number } | null;
   arrowEnd: { x: number; y: number } | null;
   textPos: { x: number; y: number } | null;
+  pendingSmartNumberBadge: NumberBadge | null;
 }
 
 interface ToolState extends SmartDraft {
@@ -33,12 +34,13 @@ interface ToolState extends SmartDraft {
   mosaicPreview: Rect | null;
   arrowPreview: ArrowDraft | null;
   textPos: { x: number; y: number } | null; // standalone text tool anchor
+  pendingTextNumberBadge: NumberBadge | null;
 
   setSmart: (patch: Partial<SmartDraft>) => void;
   setRectPreview: (r: Rect | null) => void;
   setMosaicPreview: (r: Rect | null) => void;
   setArrowPreview: (a: ArrowDraft | null) => void;
-  setTextPos: (p: { x: number; y: number } | null) => void;
+  setTextPos: (p: { x: number; y: number } | null, pendingNumberBadge?: NumberBadge | null) => void;
   resetSmart: () => void;
   resetAll: () => void;
 }
@@ -50,6 +52,7 @@ const emptySmart: SmartDraft = {
   arrowStart: null,
   arrowEnd: null,
   textPos: null,
+  pendingSmartNumberBadge: null,
 };
 
 export const useToolState = create<ToolState>((set) => ({
@@ -58,12 +61,14 @@ export const useToolState = create<ToolState>((set) => ({
   mosaicPreview: null,
   arrowPreview: null,
   textPos: null,
+  pendingTextNumberBadge: null,
 
   setSmart: (patch) => set(patch),
   setRectPreview: (r) => set({ rectPreview: r }),
   setMosaicPreview: (r) => set({ mosaicPreview: r }),
   setArrowPreview: (a) => set({ arrowPreview: a }),
-  setTextPos: (p) => set({ textPos: p }),
+  setTextPos: (p, pendingNumberBadge = null) => set({ textPos: p, pendingTextNumberBadge: pendingNumberBadge }),
   resetSmart: () => set({ ...emptySmart }),
-  resetAll: () => set({ ...emptySmart, rectPreview: null, mosaicPreview: null, arrowPreview: null, textPos: null }),
+  resetAll: () =>
+    set({ ...emptySmart, rectPreview: null, mosaicPreview: null, arrowPreview: null, textPos: null, pendingTextNumberBadge: null }),
 }));

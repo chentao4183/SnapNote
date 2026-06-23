@@ -15,7 +15,7 @@ const TOOLS: ToolDef[] = [
   { id: "smart", label: "★", hint: "智能备注 (S)" },
   { id: "rect", label: "▭", hint: "矩形 / 椭圆 (R)" },
   { id: "arrow", label: "↗", hint: "箭头 (A)" },
-  { id: "text", label: "T", hint: "文字 (T)" },
+  { id: "text", label: "T", hint: "文本 (T)" },
   { id: "mosaic", label: "▦", hint: "马赛克 (M)" },
 ];
 

@@ -128,7 +128,7 @@ function SmartPositionControls({
         options={[
           { label: "目标", value: "target" },
           { label: "箭头", value: "arrow" },
-          { label: "标签", value: "label" },
+          { label: "文本", value: "label" },
         ]}
         onChange={(value) => onChange({ anchor: value })}
       />
@@ -249,7 +249,7 @@ function BadgeStyleControls({
           />
         ))}
       </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }} title="文字色">
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }} title="编号色">
         <button
           onClick={() => onChange({ textColor: "#ffffff" })}
           style={{

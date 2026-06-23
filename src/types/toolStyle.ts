@@ -39,7 +39,7 @@ export const DEFAULT_TOOL_STYLES: ToolStyleSettings = {
     color: "#ff4757",
     strokeWidth: 3,
     shape: "rect",
-    fontSize: 13,
+    fontSize: 17,
     fontFamily: "",
   },
   rect: {
@@ -51,11 +51,11 @@ export const DEFAULT_TOOL_STYLES: ToolStyleSettings = {
     color: "#ff4757",
     strokeWidth: 3,
     lineStyle: "solid",
-    arrowHeadSize: 10,
+    arrowHeadSize: 17,
   },
   text: {
     color: "#ff4757",
-    fontSize: 13,
+    fontSize: 17,
     fontFamily: "",
   },
 };

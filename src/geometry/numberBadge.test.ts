@@ -136,14 +136,16 @@ describe("arrowBadgeBox", () => {
   const box = { width: 20, height: 20 };
   const lineOffset = box.height / 2 + ARROW_BADGE_LINE_GAP;
 
-  it("start sits above a horizontal arrow start point", () => {
+  it("start rides above the line on the arrow's pointing side (left edge meets startX)", () => {
     const out = arrowBadgeBox(
-      { startX: 10, startY: 100, endX: 100, endY: 100 },
+      { startX: 100, startY: 100, endX: 200, endY: 100 },
       box,
       "start",
       CROP,
     );
-    expect(out.x).toBe(10 - 10);
+    // Badge shifts toward end by half its width; left edge meets startX,
+    // badge sits above the line on the arrow's pointing side.
+    expect(out.x).toBe(100);
     expect(out.y).toBe(100 - lineOffset - 10);
   });
   it("middle sits above a horizontal arrow midpoint", () => {
@@ -176,9 +178,22 @@ describe("arrowBadgeBox", () => {
     expect(out.x).toBe(100 - lineOffset - 10);
     expect(out.y).toBe(50 - 10);
   });
+  it("start rides on the arrow's pointing side for near-vertical arrows (top edge meets startY)", () => {
+    const out = arrowBadgeBox(
+      { startX: 100, startY: 100, endX: 100, endY: 200 },
+      box,
+      "start",
+      CROP,
+    );
+    // Near-vertical arrow pointing down: badge shifts down by half its height;
+    // top edge meets startY, badge sits to the left of the line.
+    expect(out.x).toBe(100 - lineOffset - 10);
+    expect(out.y).toBe(100);
+  });
   it("falls back to end point when start is missing", () => {
     const out = arrowBadgeBox({ endX: 30, endY: 40 }, box, "start", CROP);
-    expect(out.x).toBe(30 - 10);
+    // startX falls back to endX (30); badge left edge meets it.
+    expect(out.x).toBe(30);
     expect(out.y).toBe(40 - lineOffset - 10);
   });
 });

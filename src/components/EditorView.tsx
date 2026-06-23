@@ -47,6 +47,8 @@ export default function EditorView({ onExit }: Props) {
           color="#ffffff"
           fontSize={active.smart.style.fontSize}
           fontFamily={active.smart.style.fontFamily}
+          numberBadge={active.smart.pendingNumberBadge}
+          numberBadgePosition={active.smart.smartBadgeLabelPosition}
           padX={10}
           onSubmit={active.smart.submitText}
           onCancel={active.smart.cancelText}
@@ -61,6 +63,8 @@ export default function EditorView({ onExit }: Props) {
           color={active.text.style.color}
           fontSize={active.text.style.fontSize}
           fontFamily={active.text.style.fontFamily}
+          numberBadge={active.text.pendingNumberBadge}
+          numberBadgePosition={active.text.numberBadgePosition}
           padX={10}
           onSubmit={active.text.submit}
           onCancel={active.text.cancel}

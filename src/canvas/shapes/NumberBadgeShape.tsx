@@ -26,7 +26,13 @@ export default function NumberBadgeShape({ badge, box }: Props) {
     const radius = Math.min(box.width, box.height) / 2;
     return (
       <>
-        <Circle x={box.x + box.width / 2} y={box.y + box.height / 2} radius={radius} fill={style.bgColor} />
+        <Circle
+          x={box.x + box.width / 2}
+          y={box.y + box.height / 2}
+          radius={radius}
+          fill={style.bgColor}
+          listening={false}
+        />
         <Text
           x={box.x}
           y={box.y}
@@ -47,7 +53,15 @@ export default function NumberBadgeShape({ badge, box }: Props) {
   const cornerRadius = style.shape === "rounded" ? 4 : 0;
   return (
     <>
-      <Rect x={box.x} y={box.y} width={box.width} height={box.height} fill={style.bgColor} cornerRadius={cornerRadius} />
+      <Rect
+        x={box.x}
+        y={box.y}
+        width={box.width}
+        height={box.height}
+        fill={style.bgColor}
+        cornerRadius={cornerRadius}
+        listening={false}
+      />
       <Text
         x={box.x}
         y={box.y}
