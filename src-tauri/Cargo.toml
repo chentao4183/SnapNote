@@ -1,6 +1,6 @@
 [package]
 name = "stepmark"
-version = "0.3.0"
+version = "1.0.0"
 description = "StepMark - a Windows screenshot annotation tool with auto-numbering"
 authors = ["you"]
 edition = "2021"
