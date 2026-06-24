@@ -1,39 +1,33 @@
 import type { Rect } from "../types/annotation";
 import type { Point } from "./corners";
 
-export function nearestRectEdgePoint(rect: Rect, p: Point): Point {
-  const left = rect.x;
-  const right = rect.x + rect.width;
-  const top = rect.y;
-  const bottom = rect.y + rect.height;
-  const clampedX = clamp(p.x, left, right);
-  const clampedY = clamp(p.y, top, bottom);
+/**
+ * Intersection of the ray from the rect CENTER toward `point` with the rect
+ * border. Mirrors ellipseBoundaryPoint so the smart-annotation arrow start
+ * behaves the same for rect and ellipse targets: the start→point line always
+ * passes through the center, keeping the arrow's extended line on the center.
+ *
+ * The border is the first plane the ray (center + t*(point-center), t >= 0)
+ * crosses; for an outside point that is the smallest positive t among the
+ * four edges. An inside point clamps to the same exit edge.
+ */
+export function nearestRectEdgePoint(rect: Rect, point: Point): Point {
+  const cx = rect.x + rect.width / 2;
+  const cy = rect.y + rect.height / 2;
+  const halfW = rect.width / 2;
+  const halfH = rect.height / 2;
 
-  const outside = p.x < left || p.x > right || p.y < top || p.y > bottom;
-  if (outside) {
-    return { x: clampedX, y: clampedY };
-  }
+  if (halfW <= 0 && halfH <= 0) return { x: cx, y: cy };
 
-  const distances = [
-    { edge: "left" as const, d: Math.abs(p.x - left) },
-    { edge: "right" as const, d: Math.abs(right - p.x) },
-    { edge: "top" as const, d: Math.abs(p.y - top) },
-    { edge: "bottom" as const, d: Math.abs(bottom - p.y) },
-  ];
-  const nearest = distances.reduce((best, item) => (item.d < best.d ? item : best), distances[0]);
+  const dx = point.x - cx;
+  const dy = point.y - cy;
+  if (dx === 0 && dy === 0) return { x: cx + halfW, y: cy };
 
-  switch (nearest.edge) {
-    case "left":
-      return { x: left, y: p.y };
-    case "right":
-      return { x: right, y: p.y };
-    case "top":
-      return { x: p.x, y: top };
-    case "bottom":
-      return { x: p.x, y: bottom };
-  }
-}
+  // t at which the ray reaches each border plane; pick the smallest positive
+  // (the first edge crossed going outward from the center).
+  const tx = dx === 0 ? Infinity : (dx > 0 ? halfW : -halfW) / dx;
+  const ty = dy === 0 ? Infinity : (dy > 0 ? halfH : -halfH) / dy;
+  const t = Math.min(tx, ty);
 
-function clamp(n: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, n));
+  return { x: cx + dx * t, y: cy + dy * t };
 }
