@@ -183,6 +183,8 @@ export function useSmartAnnotationTool() {
     return style.shape === "ellipse" ? "ellipse" : "rect";
   }
 
+  const { textAlign, textVerticalAnchor } = resolveTextInputAlign(ts.rect, ts.textPos, ts.arrowStart);
+
   return {
     phase: phaseRef.current,
     previewRect: ts.previewRect,
@@ -192,8 +194,8 @@ export function useSmartAnnotationTool() {
     textPos: ts.textPos,
     pendingNumberBadge: ts.pendingSmartNumberBadge,
     smartBadgeLabelPosition: smartPlacement.labelPosition,
-    textAlign: ts.rect && ts.textPos && labelSide(ts.textPos, ts.rect) === "left" ? ("right" as const) : ("left" as const),
-    textVerticalAnchor: ts.rect && ts.textPos ? labelVerticalAnchor(ts.textPos, ts.rect) : ("top" as const),
+    textAlign,
+    textVerticalAnchor,
     shape: style.shape,
     style,
     isEnteringText: ts.textPos !== null,
@@ -201,4 +203,39 @@ export function useSmartAnnotationTool() {
     submitText,
     cancelText: reset,
   };
+}
+
+/**
+ * Resolve the text-input overlay's alignment so the editing box lands on the
+ * same spot as the rendered label. Target-box mode mirrors labelSide/vertical
+ * (label extends away from the box). Free-arrow mode centers the label on the
+ * arrow line, so the input is centered vertically (horizontal arrow) or
+ * horizontally (vertical arrow) and flips side with the drag direction.
+ */
+function resolveTextInputAlign(
+  rect: { x: number; y: number; width: number; height: number } | null,
+  textPos: { x: number; y: number } | null,
+  arrowStart: { x: number; y: number } | null,
+): {
+  textAlign: "left" | "right" | "center";
+  textVerticalAnchor: "top" | "middle" | "bottom";
+} {
+  if (rect && textPos) {
+    return {
+      textAlign: labelSide(textPos, rect) === "left" ? "right" : "left",
+      textVerticalAnchor: labelVerticalAnchor(textPos, rect),
+    };
+  }
+  if (textPos && arrowStart) {
+    const dx = textPos.x - arrowStart.x;
+    const dy = textPos.y - arrowStart.y;
+    if (dx === 0 && dy === 0) {
+      return { textAlign: "left", textVerticalAnchor: "top" };
+    }
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      return { textAlign: dx >= 0 ? "left" : "right", textVerticalAnchor: "middle" };
+    }
+    return { textAlign: "center", textVerticalAnchor: dy >= 0 ? "top" : "bottom" };
+  }
+  return { textAlign: "left", textVerticalAnchor: "top" };
 }

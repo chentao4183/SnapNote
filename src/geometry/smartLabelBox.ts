@@ -1,4 +1,6 @@
 import {
+  freeArrowLabelAnchor,
+  freeArrowLabelBox,
   labelAnchorFromBoxPosition,
   labelBoxOffset,
   labelBoxPosition as positionLabelBox,
@@ -37,6 +39,11 @@ export function resolveLabelBox(
     const off = labelBoxOffset(a.arrow.startCorner, boxWidth, boxHeight);
     return { boxX: labelX + off.dx, boxY: labelY + off.dy };
   }
+  if (a.arrow && a.arrow.startX !== undefined && a.arrow.startY !== undefined) {
+    // Free-arrow mode (shape = "none"): center the label on the arrow line so
+    // the tip meets the label edge instead of poking into its top-left corner.
+    return freeArrowLabelBox({ x: a.arrow.startX, y: a.arrow.startY }, { x: labelX, y: labelY }, boxWidth, boxHeight);
+  }
   return { boxX: labelX, boxY: labelY };
 }
 
@@ -61,6 +68,10 @@ export function resolveLabelAnchor(
   if (a.arrow?.startCorner) {
     const off = labelBoxOffset(a.arrow.startCorner, boxWidth, boxHeight);
     return { labelX: boxX - off.dx, labelY: boxY - off.dy };
+  }
+  if (a.arrow && a.arrow.startX !== undefined && a.arrow.startY !== undefined) {
+    const anchor = freeArrowLabelAnchor({ x: a.arrow.startX, y: a.arrow.startY }, { x: boxX, y: boxY, width: boxWidth, height: boxHeight });
+    return { labelX: anchor.x, labelY: anchor.y };
   }
   return { labelX: boxX, labelY: boxY };
 }
