@@ -73,11 +73,18 @@
 ```bash
 npm run tauri dev
 npm run build
+npm run build:exe
 npm test
 npm run tauri build
 ```
 
 首次运行前需要 `npm install`。
+
+固定编译流程:
+
+- 当用户只说“编译”或“编译 exe”时,默认运行 `scripts\build-exe.cmd`,不要重新推演构建命令。
+- 该脚本生成 release exe、MSI 和 NSIS 安装包;主要产物为 `src-tauri\target\release\stepmark.exe`、`src-tauri\target\release\bundle\msi\*.msi`、`src-tauri\target\release\bundle\nsis\*.exe`。
+- 在 Codex 沙箱内运行 MSI/NSIS 打包可能因 WiX `light.exe` 环境受限失败;编译安装包时应使用外部环境/提权执行该脚本。
 
 ---
 
