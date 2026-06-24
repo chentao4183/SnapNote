@@ -1,12 +1,11 @@
 import {
-  freeArrowLabelAnchor,
-  freeArrowLabelBox,
   labelAnchorFromBoxPosition,
   labelBoxOffset,
   labelBoxPosition as positionLabelBox,
   labelSide,
   labelVerticalAnchor,
 } from "./labelBox";
+import { directionToCorner } from "./corners";
 import type { Annotation } from "../types/annotation";
 
 /**
@@ -40,9 +39,13 @@ export function resolveLabelBox(
     return { boxX: labelX + off.dx, boxY: labelY + off.dy };
   }
   if (a.arrow && a.arrow.startX !== undefined && a.arrow.startY !== undefined) {
-    // Free-arrow mode (shape = "none"): center the label on the arrow line so
-    // the tip meets the label edge instead of poking into its top-left corner.
-    return freeArrowLabelBox({ x: a.arrow.startX, y: a.arrow.startY }, { x: labelX, y: labelY }, boxWidth, boxHeight);
+    // Free-arrow mode (shape = "none"): no target box, so derive the corner
+    // from the drag direction and reuse the SAME labelBoxOffset the target-box
+    // mode uses. The arrow tip still lands on the label corner that faces the
+    // arrow start, identical to target-box mode.
+    const corner = directionToCorner({ x: a.arrow.startX, y: a.arrow.startY }, { x: labelX, y: labelY });
+    const off = labelBoxOffset(corner, boxWidth, boxHeight);
+    return { boxX: labelX + off.dx, boxY: labelY + off.dy };
   }
   return { boxX: labelX, boxY: labelY };
 }
@@ -70,8 +73,9 @@ export function resolveLabelAnchor(
     return { labelX: boxX - off.dx, labelY: boxY - off.dy };
   }
   if (a.arrow && a.arrow.startX !== undefined && a.arrow.startY !== undefined) {
-    const anchor = freeArrowLabelAnchor({ x: a.arrow.startX, y: a.arrow.startY }, { x: boxX, y: boxY, width: boxWidth, height: boxHeight });
-    return { labelX: anchor.x, labelY: anchor.y };
+    const corner = directionToCorner({ x: a.arrow.startX, y: a.arrow.startY }, { x: boxX, y: boxY });
+    const off = labelBoxOffset(corner, boxWidth, boxHeight);
+    return { labelX: boxX - off.dx, labelY: boxY - off.dy };
   }
   return { labelX: boxX, labelY: boxY };
 }

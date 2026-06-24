@@ -1,13 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  freeArrowLabelAnchor,
-  freeArrowLabelBox,
   labelAnchorFromBoxPosition,
   labelBoxOffset,
   labelBoxPosition,
   labelSide,
   labelVerticalAnchor,
 } from "./labelBox";
+import { directionToCorner } from "./corners";
 
 /**
  * Locks the spec §5.3 rule: the label's anchor corner is decided by the rect
@@ -68,80 +67,52 @@ describe("label side positioning", () => {
 });
 
 /**
- * Free-arrow label placement (shape = "none"): the label box must be centered
- * on the arrow line, with the edge nearest the drag start meeting the arrow tip
- * — never poking into the box's top-left corner.
+ * directionToCorner maps a drag direction to the target-box corner in the same
+ * quadrant. It is what lets the free-arrow (no-target) mode reuse labelBoxOffset
+ * so the label sits the same way it does in target-box mode.
  */
-describe("freeArrowLabelBox", () => {
-  const W = 80;
-  const H = 24;
-
-  it("places the box right of the tip, vertically centered, for a rightward arrow", () => {
-    const box = freeArrowLabelBox({ x: 100, y: 200 }, { x: 300, y: 200 }, W, H);
-    // box left edge at tip, vertical center on the line (tip.y - H/2).
-    expect(box).toEqual({ boxX: 300, boxY: 200 - H / 2 });
+describe("directionToCorner", () => {
+  it("maps a start left+above the anchor to 'tl'", () => {
+    expect(directionToCorner({ x: 100, y: 100 }, { x: 300, y: 300 })).toBe("tl");
   });
 
-  it("places the box left of the tip for a leftward arrow", () => {
-    const box = freeArrowLabelBox({ x: 300, y: 200 }, { x: 100, y: 200 }, W, H);
-    expect(box).toEqual({ boxX: 100 - W, boxY: 200 - H / 2 });
+  it("maps a start right+above the anchor to 'tr'", () => {
+    expect(directionToCorner({ x: 300, y: 100 }, { x: 100, y: 300 })).toBe("tr");
   });
 
-  it("places the box below the tip, horizontally centered, for a downward arrow", () => {
-    const box = freeArrowLabelBox({ x: 200, y: 100 }, { x: 200, y: 300 }, W, H);
-    expect(box).toEqual({ boxX: 200 - W / 2, boxY: 300 });
+  it("maps a start left+below the anchor to 'bl'", () => {
+    expect(directionToCorner({ x: 100, y: 300 }, { x: 300, y: 100 })).toBe("bl");
   });
 
-  it("places the box above the tip for an upward arrow", () => {
-    const box = freeArrowLabelBox({ x: 200, y: 300 }, { x: 200, y: 100 }, W, H);
-    expect(box).toEqual({ boxX: 200 - W / 2, boxY: 100 - H });
-  });
-
-  it("falls back to box top-left = tip for a zero-length drag", () => {
-    expect(freeArrowLabelBox({ x: 50, y: 50 }, { x: 50, y: 50 }, W, H)).toEqual({ boxX: 50, boxY: 50 });
+  it("maps a start right+below the anchor to 'br'", () => {
+    expect(directionToCorner({ x: 300, y: 300 }, { x: 100, y: 100 })).toBe("br");
   });
 });
 
-describe("freeArrowLabelAnchor (inverse of freeArrowLabelBox)", () => {
+/**
+ * No-target mode must produce the SAME corner-anchored layout as target-box
+ * mode: directionToCorner + labelBoxOffset == a direct labelBoxOffset for the
+ * matching corner. This is the invariant that keeps the two modes visually
+ * identical regardless of whether a target box exists.
+ */
+describe("no-target label placement matches target-box placement", () => {
   const W = 80;
   const H = 24;
+  const tip = { x: 300, y: 200 };
 
-  it("recovers the tip from a rightward-arrow box", () => {
-    const start = { x: 100, y: 200 };
-    const tip = { x: 300, y: 200 };
-    const box = freeArrowLabelBox(start, tip, W, H);
-    expect(freeArrowLabelAnchor(start, { x: box.boxX, y: box.boxY, width: W, height: H })).toEqual(tip);
+  it("produces the tl layout when the drag start is left+above the tip", () => {
+    const corner = directionToCorner({ x: 100, y: 100 }, tip);
+    expect(corner).toBe("tl");
+    const off = labelBoxOffset(corner, W, H);
+    // tip lands on the label's bottom-right corner
+    expect({ boxX: tip.x + off.dx, boxY: tip.y + off.dy }).toEqual({ boxX: 300 - W, boxY: 200 - H });
   });
 
-  it("recovers the tip from a leftward-arrow box", () => {
-    const start = { x: 300, y: 200 };
-    const tip = { x: 100, y: 200 };
-    const box = freeArrowLabelBox(start, tip, W, H);
-    expect(freeArrowLabelAnchor(start, { x: box.boxX, y: box.boxY, width: W, height: H })).toEqual(tip);
-  });
-
-  it("recovers the tip from a downward-arrow box", () => {
-    const start = { x: 200, y: 100 };
-    const tip = { x: 200, y: 300 };
-    const box = freeArrowLabelBox(start, tip, W, H);
-    expect(freeArrowLabelAnchor(start, { x: box.boxX, y: box.boxY, width: W, height: H })).toEqual(tip);
-  });
-
-  it("recovers the tip from an upward-arrow box", () => {
-    const start = { x: 200, y: 300 };
-    const tip = { x: 200, y: 100 };
-    const box = freeArrowLabelBox(start, tip, W, H);
-    expect(freeArrowLabelAnchor(start, { x: box.boxX, y: box.boxY, width: W, height: H })).toEqual(tip);
-  });
-
-  it("stays on the vertical axis for a short downward arrow (box-center classification)", () => {
-    // Short drag: |dy| (40) is large vs box height (24) but box width (80)
-    // overhangs the tip by W/2 on each side. Center-based classification must
-    // still read this as vertical and recover the exact tip.
-    const start = { x: 200, y: 100 };
-    const tip = { x: 200, y: 140 };
-    const box = freeArrowLabelBox(start, tip, W, H);
-    expect(box).toEqual({ boxX: 200 - W / 2, boxY: 140 });
-    expect(freeArrowLabelAnchor(start, { x: box.boxX, y: box.boxY, width: W, height: H })).toEqual(tip);
+  it("produces the br layout when the drag start is right+below the tip", () => {
+    const corner = directionToCorner({ x: 500, y: 400 }, tip);
+    expect(corner).toBe("br");
+    const off = labelBoxOffset(corner, W, H);
+    // tip lands on the label's top-left corner
+    expect({ boxX: tip.x + off.dx, boxY: tip.y + off.dy }).toEqual({ boxX: 300, boxY: 200 });
   });
 });

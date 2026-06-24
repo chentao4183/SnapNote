@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type Konva from "konva";
 import { smartArrowStart } from "../geometry/arrowAnchor";
+import { directionToCorner } from "../geometry/corners";
 import { labelSide, labelVerticalAnchor } from "../geometry/labelBox";
 import { applyNumberBadgeIfEnabled } from "../numbering/applyNumbering";
 import { pendingNumberBadgeForTool } from "../numbering/pendingNumberBadge";
@@ -207,17 +208,19 @@ export function useSmartAnnotationTool() {
 
 /**
  * Resolve the text-input overlay's alignment so the editing box lands on the
- * same spot as the rendered label. Target-box mode mirrors labelSide/vertical
- * (label extends away from the box). Free-arrow mode centers the label on the
- * arrow line, so the input is centered vertically (horizontal arrow) or
- * horizontally (vertical arrow) and flips side with the drag direction.
+ * same spot as the rendered label. Both modes share one rule: the arrow tip
+ * sits on the label corner that faces the arrow start, so the input flips to
+ * the opposite side.
+ *
+ *   target-box mode: side/vertical from the rect (labelSide/labelVerticalAnchor)
+ *   free-arrow mode: same logic via the corner derived from the drag direction
  */
 function resolveTextInputAlign(
   rect: { x: number; y: number; width: number; height: number } | null,
   textPos: { x: number; y: number } | null,
   arrowStart: { x: number; y: number } | null,
 ): {
-  textAlign: "left" | "right" | "center";
+  textAlign: "left" | "right";
   textVerticalAnchor: "top" | "middle" | "bottom";
 } {
   if (rect && textPos) {
@@ -227,15 +230,13 @@ function resolveTextInputAlign(
     };
   }
   if (textPos && arrowStart) {
-    const dx = textPos.x - arrowStart.x;
-    const dy = textPos.y - arrowStart.y;
-    if (dx === 0 && dy === 0) {
-      return { textAlign: "left", textVerticalAnchor: "top" };
-    }
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      return { textAlign: dx >= 0 ? "left" : "right", textVerticalAnchor: "middle" };
-    }
-    return { textAlign: "center", textVerticalAnchor: dy >= 0 ? "top" : "bottom" };
+    // Corner encodes which side the drag start is on; the input flips to the
+    // opposite side so its corner lands on the tip, matching labelBoxOffset.
+    const corner = directionToCorner(arrowStart, textPos);
+    return {
+      textAlign: corner.includes("l") ? "right" : "left",
+      textVerticalAnchor: corner.includes("t") ? "bottom" : "top",
+    };
   }
   return { textAlign: "left", textVerticalAnchor: "top" };
 }

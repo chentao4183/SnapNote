@@ -6,11 +6,6 @@ export interface Offset {
   dy: number;
 }
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
 /**
  * Where the label box sits relative to its anchor point (endX, endY), given the
  * rect corner the arrow starts from. Implements spec §5.3: the label extends
@@ -38,87 +33,6 @@ export function labelBoxOffset(corner: Corner, boxWidth: number, boxHeight: numb
     case "br":
       return { dx: 0, dy: 0 };
   }
-}
-
-/**
- * Label placement for the free-arrow smart mode (shape = "none").
- *
- * The arrow has no target box, so the label is anchored on the arrow tip
- * (endX, endY). To stay flush with the arrow instead of poking into the box's
- * top-left corner, the label box is centered on the arrow line on its dominant
- * axis, with the edge nearest the arrow start meeting the tip:
- *
- *   - horizontal arrow (|dx| >= |dy|): box sits left/right of the tip, its
- *     vertical center on the line (boxY = tip.y - boxH/2).
- *   - vertical arrow (|dy| > |dx|): box sits above/below the tip, its
- *     horizontal center on the line (boxX = tip.x - boxW/2).
- *
- * Axis classification uses the box CENTER vs the arrow start so the placement
- * and its inverse (freeArrowLabelAnchor) agree regardless of which corner the
- * box was anchored from. "left/right" / "above/below" follows the arrow's
- * travel direction so the box always extends away from where the drag started.
- */
-export function freeArrowLabelBox(
-  start: Point,
-  tip: Point,
-  boxWidth: number,
-  boxHeight: number,
-): { boxX: number; boxY: number } {
-  const dx = tip.x - start.x;
-  const dy = tip.y - start.y;
-
-  // Degenerate: zero-length drag keeps the legacy anchor (box top-left = tip).
-  if (dx === 0 && dy === 0) {
-    return { boxX: tip.x, boxY: tip.y };
-  }
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    // Dominant horizontal: box beside the tip, vertically centered on the line.
-    const boxX = dx >= 0 ? tip.x : tip.x - boxWidth;
-    const boxY = tip.y - boxHeight / 2;
-    return { boxX, boxY };
-  }
-
-  // Dominant vertical: box above/below the tip, horizontally centered on the line.
-  const boxX = tip.x - boxWidth / 2;
-  const boxY = dy >= 0 ? tip.y : tip.y - boxHeight;
-  return { boxX, boxY };
-}
-
-/**
- * Inverse of freeArrowLabelBox: recover the arrow tip (label anchor) from the
- * rendered box position. Keeps drag-to-edit consistent with placement.
- *
- * Classifies the axis from the box CENTER vs the arrow start (not the box
- * top-left), so it matches freeArrowLabelBox even when the box overhangs the
- * tip on a short vertical arrow.
- */
-export function freeArrowLabelAnchor(
-  start: Point,
-  box: { x: number; y: number; width: number; height: number },
-): { x: number; y: number } {
-  const cx = box.x + box.width / 2;
-  const cy = box.y + box.height / 2;
-  const dx = cx - start.x;
-  const dy = cy - start.y;
-
-  if (dx === 0 && dy === 0) {
-    return { x: box.x, y: box.y };
-  }
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    // Horizontal placement: tip is on the box edge facing the arrow start.
-    return {
-      x: dx >= 0 ? box.x : box.x + box.width,
-      y: cy,
-    };
-  }
-
-  // Vertical placement: tip is on the box edge facing the arrow start.
-  return {
-    x: cx,
-    y: dy >= 0 ? box.y : box.y + box.height,
-  };
 }
 
 export type LabelSide = "left" | "right";

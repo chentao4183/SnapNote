@@ -9,7 +9,7 @@ interface Props {
   x: number;
   y: number;
   initial: string;
-  align?: "left" | "right" | "center";
+  align?: "left" | "right";
   verticalAnchor?: "top" | "middle" | "bottom";
   background?: string;
   color?: string;
@@ -72,7 +72,7 @@ export default function TextInputOverlay({
     : null;
   const width = layout ? layout.width : Math.max(60, textWidth + padX * 2);
   const height = layout ? layout.height : fontSize + 10;
-  const left = align === "right" ? x - width : align === "center" ? x - width / 2 : x;
+  const left = align === "right" ? x - width : x;
   const top = verticalAnchor === "top" ? y : verticalAnchor === "middle" ? y - height / 2 : y - height;
   const paddingLeft = layout ? layout.textX : padX;
   const paddingRight =
