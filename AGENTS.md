@@ -83,7 +83,8 @@ npm run tauri build
 固定编译流程:
 
 - 当用户只说“编译”或“编译 exe”时,默认运行 `scripts\build-exe.cmd`,不要重新推演构建命令。
-- 该脚本生成 release exe、MSI 和 NSIS 安装包;主要产物为 `src-tauri\target\release\stepmark.exe`、`src-tauri\target\release\bundle\msi\*.msi`、`src-tauri\target\release\bundle\nsis\*.exe`。
+- 该脚本会先无条件关闭正在运行的 `stepmark.exe`（用 `taskkill /F`,容错“进程不存在”），再执行完整 `tauri build`，生成 release exe、MSI 和 NSIS 安装包;主要产物为 `src-tauri\target\release\stepmark.exe`、`src-tauri\target\release\bundle\msi\*.msi`、`src-tauri\target\release\bundle\nsis\*.exe`。
+- 脚本有意**不**用 `tasklist | find` 做进程检测：在 Git-bash/MSYS 下裸 `find` 会被解析成 Unix 文件查找工具而非 Windows `find.exe`,导致检测静默失败、进程杀不掉,进而占用 exe 使链接/打包失败。延时用 `ping` 而非 `timeout` 也是同理。修改脚本时请保持这种跨 shell 无外部依赖的写法。
 - 在 Codex 沙箱内运行 MSI/NSIS 打包可能因 WiX `light.exe` 环境受限失败;编译安装包时应使用外部环境/提权执行该脚本。
 
 ---
@@ -136,5 +137,5 @@ docs/
 
 - 平台: Windows 10 19045 x64
 - Shell: PowerShell
-- 工作目录: `D:\SnapNote`
+- 工作目录: `D:\StepMark`
 - 独立 git 项目,非子模块

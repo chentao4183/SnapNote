@@ -31,10 +31,20 @@
 1. 启动 StepMark,程序常驻系统托盘。
 2. 在任意应用中按 `F1`。
 3. 拖拽框选需要截图的区域。
+
+   ![框选截图区域](docs/images/flow-select.png)
+
 4. 在编辑器里用智能标注或其他工具批注。
+
+   ![智能标注生成目标框、箭头和文字标签](docs/images/flow-smart.png)
+
 5. 复制到剪贴板,或保存为 PNG/JPG。
 
+   ![复制到剪贴板或保存为 PNG/JPG](docs/images/flow-export.png)
+
 ### 工具栏
+
+![工具栏与样式面板](docs/images/flow-toolbar.png)
 
 | 工具 | 作用 |
 |------|------|
