@@ -13,7 +13,12 @@ import type {
   TextBadgePosition,
 } from "../types/numbering";
 
-const BADGE_COLORS = ["#ff4757", "#1890ff", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
+// Two rows of four swatches, matching the StylePanel ColorPicker grid so the
+// numbering color picker looks consistent with the tool color picker.
+const BADGE_COLOR_ROWS = [
+  ["#ff4757", "#1890ff", "#52c41a", "#faad14"],
+  ["#722ed1", "#000000", "#ffffff", "#fa8c16"],
+];
 const PANEL_CONTROL_HEIGHT = 26;
 
 type NumberingControlsMode = "toggle" | "details";
@@ -241,56 +246,30 @@ function BadgeStyleControls({
   style,
   onChange,
 }: {
-  style: { bgColor: string; textColor: string; shape: "square" | "rounded" | "circle"; fontSize: number };
-  onChange: (patch: Partial<{ bgColor: string; textColor: string; shape: "square" | "rounded" | "circle"; fontSize: number }>) => void;
+  style: { color: string; shape: "square" | "rounded" | "circle"; fontSize: number };
+  onChange: (patch: Partial<{ color: string; shape: "square" | "rounded" | "circle"; fontSize: number }>) => void;
 }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: PANEL_CONTROL_HEIGHT }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: PANEL_CONTROL_HEIGHT }} title="背景色">
-        {BADGE_COLORS.map((color) => (
-          <button
-            key={`bg-${color}`}
-            onClick={() => onChange({ bgColor: color })}
-            style={{
-              width: 18,
-              height: 18,
-              padding: 0,
-              borderRadius: 2,
-              border: "1px solid #455a64",
-              background: color,
-              boxShadow: style.bgColor === color ? "0 0 0 2px #1783ff" : "none",
-              cursor: "pointer",
-            }}
-          />
-        ))}
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: PANEL_CONTROL_HEIGHT }} title="编号色">
-        <button
-          onClick={() => onChange({ textColor: "#ffffff" })}
-          style={{
-            width: 18,
-            height: 18,
-            padding: 0,
-            borderRadius: 2,
-            border: "1px solid #455a64",
-            background: "#ffffff",
-            boxShadow: style.textColor === "#ffffff" ? "0 0 0 2px #1783ff" : "none",
-            cursor: "pointer",
-          }}
-        />
-        <button
-          onClick={() => onChange({ textColor: "#000000" })}
-          style={{
-            width: 18,
-            height: 18,
-            padding: 0,
-            borderRadius: 2,
-            border: "1px solid #455a64",
-            background: "#000000",
-            boxShadow: style.textColor === "#000000" ? "0 0 0 2px #1783ff" : "none",
-            cursor: "pointer",
-          }}
-        />
+      <span style={badgeColorGridStyle} title="编号颜色">
+        {BADGE_COLOR_ROWS.map((row) =>
+          row.map((color) => (
+            <button
+              key={color}
+              onClick={() => onChange({ color })}
+              style={{
+                width: 12,
+                height: 12,
+                padding: 0,
+                borderRadius: 0,
+                border: color === "#ffffff" ? "1px solid #8a8a8a" : "1px solid #263238",
+                background: color,
+                boxShadow: style.color === color ? "0 0 0 2px #1783ff" : "none",
+                cursor: "pointer",
+              }}
+            />
+          )),
+        )}
       </span>
       <Segmented
         value={style.shape}
@@ -404,4 +383,13 @@ const numberInputStyle: CSSProperties = {
   border: "1px solid #1783ff",
   borderRadius: 0,
   font: "inherit",
+};
+
+// 4-column, 2-row grid matching StylePanel's presetColorGridStyle so the
+// numbering color swatches line up with the tool color swatches.
+const badgeColorGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: `repeat(${BADGE_COLOR_ROWS[0].length}, 12px)`,
+  gridTemplateRows: "repeat(2, 12px)",
+  gap: 2,
 };

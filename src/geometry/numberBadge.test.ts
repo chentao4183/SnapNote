@@ -21,7 +21,7 @@ const CROP: Rect = { x: 0, y: 0, width: 1000, height: 1000 };
 const measure = (text: string, fontSize: number) => text.length * fontSize * 0.6;
 
 function style(overrides: Partial<NumberBadgeStyle> = {}): NumberBadgeStyle {
-  return { bgColor: "#1677ff", textColor: "#ffffff", shape: "square", fontSize: 13, ...overrides };
+  return { color: "#1677ff", shape: "square", fontSize: 13, ...overrides };
 }
 
 describe("measureNumberBadge", () => {

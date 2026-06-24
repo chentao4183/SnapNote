@@ -37,7 +37,7 @@ describe("applyNumberBadgeIfEnabled", () => {
     const settings: NumberingSettings = {
       ...DEFAULT_NUMBERING_SETTINGS,
       enabledByTool: { smart: false, rect: true, arrow: false, text: false },
-      badgeStyle: { bgColor: "#abcdef", textColor: "#123456", shape: "circle", fontSize: 18 },
+      badgeStyle: { color: "#abcdef", shape: "circle", fontSize: 18 },
     };
 
     const result = applyNumberBadgeIfEnabled("rect", baseAnnotation(), settings, 7);
@@ -45,7 +45,7 @@ describe("applyNumberBadgeIfEnabled", () => {
     expect(result.consumed).toBe(true);
     expect(result.annotation.numberBadge).toEqual({
       value: 7,
-      style: { bgColor: "#abcdef", textColor: "#123456", shape: "circle", fontSize: 18 },
+      style: { color: "#abcdef", shape: "circle", fontSize: 18 },
     });
   });
 
@@ -53,14 +53,14 @@ describe("applyNumberBadgeIfEnabled", () => {
     const settings: NumberingSettings = {
       ...DEFAULT_NUMBERING_SETTINGS,
       enabledByTool: { smart: true, rect: false, arrow: false, text: false },
-      badgeStyle: { bgColor: "#1677ff", textColor: "#ffffff", shape: "square", fontSize: 13 },
+      badgeStyle: { color: "#1677ff", shape: "square", fontSize: 13 },
     };
 
     const result = applyNumberBadgeIfEnabled("smart", baseAnnotation(), settings, 1);
     // mutate the source style after applying
-    settings.badgeStyle.bgColor = "#000000";
+    settings.badgeStyle.color = "#000000";
 
-    expect(result.annotation.numberBadge?.style.bgColor).toBe("#1677ff");
+    expect(result.annotation.numberBadge?.style.color).toBe("#1677ff");
   });
 
   it("does not mutate the input annotation", () => {

@@ -40,7 +40,7 @@ describe("loadNumberingSettings", () => {
         arrow: "start",
         text: "right",
       },
-      badgeStyle: { bgColor: "#abcdef", textColor: "#123456", shape: "circle", fontSize: 18 },
+      badgeStyle: { color: "#abcdef", shape: "circle", fontSize: 18 },
     };
     withStorage({ getItem: (k) => (k === NUMBERING_STORAGE_KEY ? JSON.stringify(persisted) : null) });
     expect(loadNumberingSettings()).toEqual(persisted);
@@ -66,7 +66,7 @@ describe("loadNumberingSettings", () => {
         arrow: "middle",
         text: "left",
       },
-      badgeStyle: { bgColor: "nope", textColor: "#ffffff", shape: "hexagon", fontSize: 999 },
+      badgeStyle: { color: "nope", shape: "hexagon", fontSize: 999 },
     };
     withStorage({ getItem: (k) => (k === NUMBERING_STORAGE_KEY ? JSON.stringify(persisted) : null) });
 
@@ -81,10 +81,24 @@ describe("loadNumberingSettings", () => {
     expect(settings.positionByTool.arrow).toBe("middle");
     expect(settings.positionByTool.smart.anchor).toBe(DEFAULT_NUMBERING_SETTINGS.positionByTool.smart.anchor);
     expect(settings.badgeStyle).toEqual({
-      bgColor: DEFAULT_NUMBERING_SETTINGS.badgeStyle.bgColor,
-      textColor: "#ffffff",
+      color: DEFAULT_NUMBERING_SETTINGS.badgeStyle.color,
       shape: DEFAULT_NUMBERING_SETTINGS.badgeStyle.shape,
       fontSize: DEFAULT_NUMBERING_SETTINGS.badgeStyle.fontSize,
+    });
+  });
+
+  it("migrates legacy badge background color into unified color", () => {
+    const persisted = {
+      enabledByTool: DEFAULT_NUMBERING_SETTINGS.enabledByTool,
+      positionByTool: DEFAULT_NUMBERING_SETTINGS.positionByTool,
+      badgeStyle: { bgColor: "#abcdef", textColor: "#123456", shape: "circle", fontSize: 18 },
+    };
+    withStorage({ getItem: (k) => (k === NUMBERING_STORAGE_KEY ? JSON.stringify(persisted) : null) });
+
+    expect(loadNumberingSettings().badgeStyle).toEqual({
+      color: "#abcdef",
+      shape: "circle",
+      fontSize: 18,
     });
   });
 });
@@ -114,10 +128,10 @@ describe("useNumberingStore updates", () => {
   });
 
   it("updates badge style and persists a copy", () => {
-    useNumberingStore.getState().updateBadgeStyle({ bgColor: "#000000" });
-    expect(useNumberingStore.getState().settings.badgeStyle.bgColor).toBe("#000000");
+    useNumberingStore.getState().updateBadgeStyle({ color: "#000000" });
+    expect(useNumberingStore.getState().settings.badgeStyle.color).toBe("#000000");
     const stored = JSON.parse(captured);
-    expect(stored.badgeStyle.bgColor).toBe("#000000");
+    expect(stored.badgeStyle.color).toBe("#000000");
   });
 
   it("resets to defaults", () => {

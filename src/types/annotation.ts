@@ -44,8 +44,7 @@ export interface ArrowData {
 export type BadgeShape = "square" | "rounded" | "circle";
 
 export interface NumberBadgeStyle {
-  bgColor: string;
-  textColor: string;
+  color: string;
   shape: BadgeShape;
   fontSize: number;
 }

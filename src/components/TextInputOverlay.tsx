@@ -79,6 +79,9 @@ export default function TextInputOverlay({
     layout && layout.badgeBox && numberBadgePosition === "right" ? width - layout.badgeBox.x : padX;
   const paddingTop = layout ? layout.textY : 5;
   const paddingBottom = Math.max(0, height - paddingTop - fontSize);
+  const numberBadgeColor = numberBadge
+    ? numberBadge.style.color ?? (numberBadge.style as { bgColor?: string }).bgColor ?? "#ff4757"
+    : undefined;
 
   return (
     <>
@@ -145,8 +148,10 @@ export default function TextInputOverlay({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: numberBadge.style.bgColor,
-            color: numberBadge.style.textColor,
+            background: "transparent",
+            color: numberBadgeColor,
+            border: `2px solid ${numberBadgeColor}`,
+            boxSizing: "border-box",
             borderRadius:
               numberBadge.style.shape === "circle" ? "999px" : numberBadge.style.shape === "rounded" ? 4 : 0,
             fontSize: numberBadge.style.fontSize,

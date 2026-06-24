@@ -43,8 +43,8 @@ export default function EditorView({ onExit }: Props) {
           initial=""
           align={active.smart.textAlign}
           verticalAnchor={active.smart.textVerticalAnchor}
-          background={active.smart.style.color}
-          color="#ffffff"
+          background="transparent"
+          color={active.smart.style.color}
           fontSize={active.smart.style.fontSize}
           fontFamily={active.smart.style.fontFamily}
           numberBadge={active.smart.pendingNumberBadge}

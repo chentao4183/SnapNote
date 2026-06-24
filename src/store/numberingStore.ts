@@ -150,9 +150,9 @@ function validateTargetPlacement(value: unknown): TargetBadgePlacement {
 function validateBadgeStyle(value: unknown): NumberBadgeStyle {
   const d = DEFAULT_NUMBERING_SETTINGS.badgeStyle;
   if (!isRecord(value)) return { ...d };
+  const legacyBgColor = value.bgColor;
   return {
-    bgColor: validColor(value.bgColor) ? value.bgColor : d.bgColor,
-    textColor: validColor(value.textColor) ? value.textColor : d.textColor,
+    color: validColor(value.color) ? value.color : validColor(legacyBgColor) ? legacyBgColor : d.color,
     shape: isBadgeShape(value.shape) ? value.shape : d.shape,
     fontSize: validInt(value.fontSize, BADGE_FONT_SIZE_LIMITS.min, BADGE_FONT_SIZE_LIMITS.max)
       ? value.fontSize

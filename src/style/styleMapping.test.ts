@@ -3,7 +3,7 @@ import { DEFAULT_TOOL_STYLES } from "../types/toolStyle";
 import { annotationFieldsFromToolStyle } from "./styleMapping";
 
 describe("annotationFieldsFromToolStyle", () => {
-  it("maps smart styles to shape, label font, and white label text", () => {
+  it("maps smart styles to shape, label font, and frame-colored label text", () => {
     const fields = annotationFieldsFromToolStyle("smart", {
       ...DEFAULT_TOOL_STYLES,
       smart: { color: "#1890ff", strokeWidth: 5, shape: "ellipse", fontSize: 20, fontFamily: "Arial" },
@@ -15,7 +15,7 @@ describe("annotationFieldsFromToolStyle", () => {
       borderColor: "#1890ff",
       borderWidth: 5,
       bgColor: "#1890ff",
-      textColor: "#ffffff",
+      textColor: "#1890ff",
       fontSize: 20,
     });
   });

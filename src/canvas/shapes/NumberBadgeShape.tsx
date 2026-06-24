@@ -15,12 +15,14 @@ interface Props {
  * - rounded: Rect, cornerRadius 4
  * - circle: Circle with radius = min(width, height) / 2
  *
- * Text is centered with the badge's own style. No border is drawn.
+ * Text is centered with the badge's own style. The badge is transparent with
+ * a colored border and colored text.
  */
 export default function NumberBadgeShape({ badge, box }: Props) {
   const { style, value } = badge;
   const text = String(value);
   const fontFamily = labelFontFamily(undefined);
+  const color = style.color ?? (style as { bgColor?: string }).bgColor ?? "#ff4757";
 
   if (style.shape === "circle") {
     const radius = Math.min(box.width, box.height) / 2;
@@ -30,7 +32,9 @@ export default function NumberBadgeShape({ badge, box }: Props) {
           x={box.x + box.width / 2}
           y={box.y + box.height / 2}
           radius={radius}
-          fill={style.bgColor}
+          fill="rgba(255,255,255,0)"
+          stroke={color}
+          strokeWidth={2}
           listening={false}
         />
         <Text
@@ -43,7 +47,7 @@ export default function NumberBadgeShape({ badge, box }: Props) {
           text={text}
           fontSize={style.fontSize}
           fontFamily={fontFamily}
-          fill={style.textColor}
+          fill={color}
           listening={false}
         />
       </>
@@ -58,7 +62,9 @@ export default function NumberBadgeShape({ badge, box }: Props) {
         y={box.y}
         width={box.width}
         height={box.height}
-        fill={style.bgColor}
+        fill="rgba(255,255,255,0)"
+        stroke={color}
+        strokeWidth={2}
         cornerRadius={cornerRadius}
         listening={false}
       />
@@ -72,7 +78,7 @@ export default function NumberBadgeShape({ badge, box }: Props) {
         text={text}
         fontSize={style.fontSize}
         fontFamily={fontFamily}
-        fill={style.textColor}
+        fill={color}
         listening={false}
       />
     </>

@@ -65,8 +65,7 @@ export const DEFAULT_NUMBERING_SETTINGS: NumberingSettings = {
     text: "left",
   },
   badgeStyle: {
-    bgColor: "#ff4757",
-    textColor: "#ffffff",
+    color: "#ff4757",
     shape: "circle",
     fontSize: 17,
   },

@@ -10,8 +10,10 @@ export function annotationFieldsFromToolStyle(
   switch (tool) {
     case "smart": {
       const t = settings.smart;
+      // Smart label text reuses the frame/arrow color with no background fill,
+      // keeping the label visually unified with the target box and arrow.
       return {
-        style: style(t.color, t.strokeWidth, t.color, "#ffffff", t.fontSize),
+        style: style(t.color, t.strokeWidth, t.color, t.color, t.fontSize),
         shape: t.shape,
         fontFamily: t.fontFamily,
       };
