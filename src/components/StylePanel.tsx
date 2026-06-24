@@ -4,6 +4,7 @@ import type { ToolType } from "../types/annotation";
 import { TOOL_STYLE_LIMITS } from "../types/toolStyle";
 import NumberingControls from "./NumberingControls";
 
+const PANEL_CONTROL_HEIGHT = 26;
 const PRESET_COLORS = ["#ff4757", "#1890ff", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
 const FONT_OPTIONS = [
   { label: "跟随系统", value: "" },
@@ -34,13 +35,14 @@ export default function StylePanel({ tool, placement }: Props) {
         flexDirection: "column",
         alignItems: "flex-start",
         gap: 4,
-        padding: "4px 6px",
+        padding: 4,
         background: "#f7f7f7",
         border: "1px solid #1783ff",
         borderRadius: 2,
         boxShadow: "0 1px 3px rgba(0,0,0,0.16)",
         color: "#263238",
         fontSize: 12,
+        lineHeight: "16px",
         zIndex: 51,
         whiteSpace: "nowrap",
         maxWidth: "calc(100vw - 8px)",
@@ -161,18 +163,20 @@ function PanelRow({ children }: { children: ReactNode }) {
 
 function ColorPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4, height: PANEL_CONTROL_HEIGHT }}>
       {PRESET_COLORS.map((color) => (
         <button
           key={color}
           title={color}
           onClick={() => onChange(color)}
           style={{
-            width: 18,
-            height: 18,
+            width: 22,
+            height: 22,
+            padding: 0,
             borderRadius: 2,
-            border: value === color ? "2px solid #1783ff" : "1px solid #455a64",
+            border: "1px solid #455a64",
             background: color,
+            boxShadow: value === color ? "0 0 0 2px #1783ff" : "none",
             cursor: "pointer",
           }}
         />
@@ -182,7 +186,14 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (value: str
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ width: 22, height: 22, padding: 0, border: "1px solid #1783ff", background: "#fff", cursor: "pointer" }}
+        style={{
+          width: PANEL_CONTROL_HEIGHT,
+          height: PANEL_CONTROL_HEIGHT,
+          padding: 1,
+          border: "1px solid #1783ff",
+          background: "#fff",
+          cursor: "pointer",
+        }}
       />
     </div>
   );
@@ -206,7 +217,7 @@ function NumberSlider({
   }
 
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <label style={{ display: "flex", alignItems: "center", gap: 5, height: PANEL_CONTROL_HEIGHT }}>
       <span>{label}</span>
       <input
         type="range"
@@ -219,7 +230,7 @@ function NumberSlider({
           e.preventDefault();
           setClamped(value + (e.deltaY < 0 ? 1 : -1));
         }}
-        style={{ width: 70, accentColor: "#1783ff" }}
+        style={{ width: 70, height: PANEL_CONTROL_HEIGHT, accentColor: "#1783ff" }}
       />
       <input
         type="number"
@@ -227,7 +238,7 @@ function NumberSlider({
         max={max}
         value={value}
         onChange={(e) => setClamped(Number(e.target.value))}
-        style={{ width: 42, background: "#fff", color: "#263238", border: "1px solid #1783ff", borderRadius: 0 }}
+        style={numberInputStyle}
       />
     </label>
   );
@@ -243,17 +254,21 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div style={{ display: "flex", border: "1px solid #1783ff", borderRadius: 0, overflow: "hidden" }}>
+    <div style={segmentedStyle}>
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
           style={{
             border: "none",
-            padding: "4px 8px",
+            minWidth: 38,
+            height: PANEL_CONTROL_HEIGHT - 2,
+            padding: "0 8px",
             background: value === option.value ? "#1783ff" : "#fff",
             color: value === option.value ? "#fff" : "#263238",
             cursor: "pointer",
+            font: "inherit",
+            lineHeight: `${PANEL_CONTROL_HEIGHT - 2}px`,
           }}
         >
           {option.label}
@@ -268,7 +283,14 @@ function FontSelect({ value, onChange }: { value: string; onChange: (value: stri
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ background: "#fff", color: "#263238", border: "1px solid #1783ff", borderRadius: 0, height: 24 }}
+      style={{
+        height: PANEL_CONTROL_HEIGHT,
+        background: "#fff",
+        color: "#263238",
+        border: "1px solid #1783ff",
+        borderRadius: 0,
+        font: "inherit",
+      }}
     >
       {FONT_OPTIONS.map((font) => (
         <option key={font.value} value={font.value}>
@@ -282,7 +304,27 @@ function FontSelect({ value, onChange }: { value: string; onChange: (value: stri
 const panelRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 8,
+  gap: 6,
+  minHeight: 30,
   whiteSpace: "nowrap",
   flexWrap: "nowrap",
+};
+
+const segmentedStyle: CSSProperties = {
+  display: "flex",
+  height: PANEL_CONTROL_HEIGHT,
+  border: "1px solid #1783ff",
+  borderRadius: 0,
+  overflow: "hidden",
+};
+
+const numberInputStyle: CSSProperties = {
+  width: 44,
+  height: PANEL_CONTROL_HEIGHT,
+  padding: "0 4px",
+  background: "#fff",
+  color: "#263238",
+  border: "1px solid #1783ff",
+  borderRadius: 0,
+  font: "inherit",
 };

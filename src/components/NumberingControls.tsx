@@ -13,6 +13,7 @@ import type {
 } from "../types/numbering";
 
 const BADGE_COLORS = ["#ff4757", "#1890ff", "#52c41a", "#faad14", "#722ed1", "#000000", "#ffffff", "#fa8c16"];
+const PANEL_CONTROL_HEIGHT = 26;
 
 type NumberingControlsMode = "toggle" | "details";
 
@@ -45,7 +46,7 @@ export default function NumberingControls({ tool, mode = "details" }: Props) {
           type="checkbox"
           checked={enabled}
           onChange={(e) => updateEnabled(tool, e.target.checked)}
-          style={{ accentColor: "#1783ff", cursor: "pointer" }}
+          style={{ width: 14, height: 14, accentColor: "#1783ff", cursor: "pointer" }}
         />
         <span>自动编号</span>
       </label>
@@ -231,46 +232,49 @@ function BadgeStyleControls({
   onChange: (patch: Partial<{ bgColor: string; textColor: string; shape: "square" | "rounded" | "circle"; fontSize: number }>) => void;
 }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }} title="背景色">
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: PANEL_CONTROL_HEIGHT }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: PANEL_CONTROL_HEIGHT }} title="背景色">
         {BADGE_COLORS.map((color) => (
           <button
             key={`bg-${color}`}
             onClick={() => onChange({ bgColor: color })}
             style={{
-              width: 14,
-              height: 14,
+              width: 18,
+              height: 18,
               padding: 0,
               borderRadius: 2,
-              border: style.bgColor === color ? "2px solid #1783ff" : "1px solid #455a64",
+              border: "1px solid #455a64",
               background: color,
+              boxShadow: style.bgColor === color ? "0 0 0 2px #1783ff" : "none",
               cursor: "pointer",
             }}
           />
         ))}
       </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }} title="编号色">
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: PANEL_CONTROL_HEIGHT }} title="编号色">
         <button
           onClick={() => onChange({ textColor: "#ffffff" })}
           style={{
-            width: 14,
-            height: 14,
+            width: 18,
+            height: 18,
             padding: 0,
             borderRadius: 2,
-            border: style.textColor === "#ffffff" ? "2px solid #1783ff" : "1px solid #455a64",
+            border: "1px solid #455a64",
             background: "#ffffff",
+            boxShadow: style.textColor === "#ffffff" ? "0 0 0 2px #1783ff" : "none",
             cursor: "pointer",
           }}
         />
         <button
           onClick={() => onChange({ textColor: "#000000" })}
           style={{
-            width: 14,
-            height: 14,
+            width: 18,
+            height: 18,
             padding: 0,
             borderRadius: 2,
-            border: style.textColor === "#000000" ? "2px solid #1783ff" : "1px solid #455a64",
+            border: "1px solid #455a64",
             background: "#000000",
+            boxShadow: style.textColor === "#000000" ? "0 0 0 2px #1783ff" : "none",
             cursor: "pointer",
           }}
         />
@@ -284,7 +288,7 @@ function BadgeStyleControls({
         ]}
         onChange={(value) => onChange({ shape: value })}
       />
-      <label style={{ display: "flex", alignItems: "center", gap: 3 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 3, height: PANEL_CONTROL_HEIGHT }}>
         <span>字号</span>
         <input
           type="number"
@@ -297,7 +301,7 @@ function BadgeStyleControls({
               onChange({ fontSize: Math.min(BADGE_FONT_SIZE_LIMITS.max, Math.max(BADGE_FONT_SIZE_LIMITS.min, n)) });
             }
           }}
-          style={{ width: 38, background: "#fff", color: "#263238", border: "1px solid #1783ff", borderRadius: 0 }}
+          style={numberInputStyle}
         />
       </label>
     </span>
@@ -314,17 +318,21 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div style={{ display: "inline-flex", border: "1px solid #1783ff", borderRadius: 0, overflow: "hidden" }}>
+    <div style={segmentedStyle}>
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
           style={{
             border: "none",
-            padding: "2px 6px",
+            minWidth: 28,
+            height: PANEL_CONTROL_HEIGHT - 2,
+            padding: "0 7px",
             background: value === option.value ? "#1783ff" : "#fff",
             color: value === option.value ? "#fff" : "#263238",
             cursor: "pointer",
+            font: "inherit",
+            lineHeight: `${PANEL_CONTROL_HEIGHT - 2}px`,
           }}
         >
           {option.label}
@@ -338,6 +346,7 @@ const toggleStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 4,
+  height: PANEL_CONTROL_HEIGHT,
   marginLeft: 6,
   paddingLeft: 6,
   borderLeft: "1px solid #cfd8dc",
@@ -348,16 +357,38 @@ const detailsRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
+  minHeight: 30,
   paddingTop: 4,
   borderTop: "1px solid #d8e3ea",
   whiteSpace: "nowrap",
 };
 
 const resetButtonStyle: CSSProperties = {
-  padding: "2px 6px",
+  height: PANEL_CONTROL_HEIGHT,
+  padding: "0 8px",
   background: "#fff",
   color: "#263238",
   border: "1px solid #1783ff",
   borderRadius: 0,
   cursor: "pointer",
+  font: "inherit",
+};
+
+const segmentedStyle: CSSProperties = {
+  display: "inline-flex",
+  height: PANEL_CONTROL_HEIGHT,
+  border: "1px solid #1783ff",
+  borderRadius: 0,
+  overflow: "hidden",
+};
+
+const numberInputStyle: CSSProperties = {
+  width: 44,
+  height: PANEL_CONTROL_HEIGHT,
+  padding: "0 4px",
+  background: "#fff",
+  color: "#263238",
+  border: "1px solid #1783ff",
+  borderRadius: 0,
+  font: "inherit",
 };
