@@ -71,6 +71,19 @@ export default function PinWindow() {
       });
   }, [payload]);
 
+  // Signal the creator once the <img> has actually decoded, so it can show
+  // the window only after pixels are on screen — otherwise win.show() races
+  // ahead of the decode and the pin briefly appears blank.
+  const renderedRef = useRef(false);
+  function onImageLoad() {
+    if (renderedRef.current) return;
+    renderedRef.current = true;
+    void (async () => {
+      const label = getCurrentWebviewWindow().label;
+      await emit(`pin-rendered-${label}`);
+    })();
+  }
+
   // Apply scaleRef to the physical window, anchored at the TOP-LEFT corner.
   // Because the anchor is the top-left, we only need to setSize — the window's
   // position stays fixed, so we skip the outerPosition/outerSize IPC calls
@@ -225,6 +238,7 @@ export default function PinWindow() {
         alt=""
         draggable={false}
         style={imageStyle}
+        onLoad={onImageLoad}
         onPointerDown={onImagePointerDown}
       />
       {/* Close button (top-right). Hidden until hover. */}
