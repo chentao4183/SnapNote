@@ -26,6 +26,9 @@ nul
 # Brainstorm scratch (superpowers visual companion)
 .superpowers/
 
+# ZCode agent local scratch
+.zcode/
+
 # Logs
 logs/
 *.log

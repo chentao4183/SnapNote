@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { exportToClipboard, exportToFile } from "../canvas/exportCanvas";
+import { exportToClipboard, exportToFile, pinToScreen } from "../canvas/exportCanvas";
 import { hideCurrentWindow } from "../ipc/bridge";
 import { useEditorStore } from "../store/editorStore";
 import type { ToolType } from "../types/annotation";
 import StylePanel from "./StylePanel";
 
-type IconName = "smart" | "rect" | "arrow" | "text" | "mosaic" | "undo" | "redo" | "close" | "save" | "copy";
+type IconName = "smart" | "rect" | "arrow" | "text" | "mosaic" | "undo" | "redo" | "close" | "save" | "copy" | "pin";
 
 interface ToolDef {
   id: ToolType;
@@ -35,7 +35,7 @@ export default function Toolbar({ onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [openPanel, setOpenPanel] = useState<StyleTool | null>(null);
 
-  const toolbarWidth = 318;
+  const toolbarWidth = 346;
   const toolbarHeight = 36;
   const gap = 8;
   const topBelow = cropRegion.y + cropRegion.height + gap;
@@ -134,6 +134,19 @@ export default function Toolbar({ onClose }: Props) {
         >
           <ToolbarIcon name="copy" />
         </button>
+        <button
+          title="贴到屏幕 (P)"
+          style={btn(false)}
+          onClick={() =>
+            run(async () => {
+              await pinToScreen();
+              closeEditor();
+            })
+          }
+          disabled={busy}
+        >
+          <ToolbarIcon name="pin" />
+        </button>
       </div>
       {openPanel && <StylePanel tool={openPanel} placement={placeBelow ? "below" : "above"} />}
     </div>
@@ -216,6 +229,12 @@ function ToolbarIcon({ name }: { name: IconName }) {
       <>
         <rect x="8" y="8" width="12" height="12" rx="1" />
         <path d="M4 16V4h12" />
+      </>
+    ),
+    pin: (
+      <>
+        <path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6Z" />
+        <path d="M12 14v7" />
       </>
     ),
   };
