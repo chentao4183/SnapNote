@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize } from "@tauri-apps/api/window";
+import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
 import { copyImageToClipboard, saveImage, type PinLoadPayload } from "../ipc/bridge";
 import { clampScale, scaleFromCornerDrag } from "../canvas/pinGeometry";
 
@@ -193,6 +193,14 @@ export default function PinWindow() {
         await close();
         return;
       }
+      // Arrow keys nudge the pin by 1 logical px (10 px with Shift).
+      const arrow = arrowKey(e);
+      if (arrow) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        await nudgePin(arrow.dx * step, arrow.dy * step);
+        return;
+      }
       if (ctrl && e.key.toLowerCase() === "c") {
         e.preventDefault();
         try {
@@ -225,7 +233,9 @@ export default function PinWindow() {
 
   const closeBtnOpacity = hovered ? 0.85 : 0;
   const handleOpacity = hovered ? 0.85 : 0;
-  const borderColor = hovered ? "rgba(23,131,255,0.9)" : "transparent";
+  // Border is always visible (steady deep blue) so the pin's outline is
+  // obvious even at rest; hover only reveals the close button and handle.
+  const borderColor = "rgba(23,131,255,0.9)";
 
   return (
     <div
@@ -339,4 +349,38 @@ function CloseIcon() {
       <path d="M19 5 5 19" />
     </svg>
   );
+}
+
+/**
+ * If the keyboard event is an arrow key, return its unit delta in logical
+ * pixels (screen orientation: right = +x, down = +y). Returns null for
+ * non-arrow keys so the caller can fall through to other shortcuts.
+ */
+function arrowKey(e: KeyboardEvent): { dx: number; dy: number } | null {
+  switch (e.key) {
+    case "ArrowLeft":
+      return { dx: -1, dy: 0 };
+    case "ArrowRight":
+      return { dx: 1, dy: 0 };
+    case "ArrowUp":
+      return { dx: 0, dy: -1 };
+    case "ArrowDown":
+      return { dx: 0, dy: 1 };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Move the current pin window by (dx, dy) logical pixels. Reads the current
+ * outer position (physical), converts to logical, applies the delta, and
+ * re-positions. Used by the arrow-key nudge shortcut.
+ */
+async function nudgePin(dx: number, dy: number): Promise<void> {
+  const win = getCurrentWebviewWindow();
+  const factor = await win.scaleFactor().catch(() => 1);
+  const pos = await win.outerPosition();
+  const nextX = pos.x / factor + dx;
+  const nextY = pos.y / factor + dy;
+  await win.setPosition(new LogicalPosition(nextX, nextY));
 }
