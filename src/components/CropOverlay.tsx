@@ -53,7 +53,9 @@ export default function CropOverlay() {
     window.addEventListener("mouseup", onUp);
   }
 
-  const shade = "rgba(0, 0, 0, 0.28)";
+  // Keep in sync with SelectorWindow.tsx (F1 select-stage mask) so the dim
+  // color doesn't shift between region selection and editor crop overlay.
+  const shade = "rgba(0, 0, 0, 0.45)";
   const commonShade: React.CSSProperties = {
     position: "absolute",
     background: shade,
