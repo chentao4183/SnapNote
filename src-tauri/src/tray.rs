@@ -5,9 +5,13 @@ use tauri::{
 };
 
 pub fn trigger_screenshot<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(win) = app.get_webview_window("selector") {
-        let _ = win.show();
-        let _ = win.set_focus();
+    if let Some(_win) = app.get_webview_window("selector") {
+        // Do NOT show the selector window here. The webview is already
+        // running (static window), so emitting selector-start is enough to
+        // kick off recapture(). Showing the window now and hiding it again
+        // inside recapture() causes a visible flash before the screenshot
+        // background is ready. recapture() will show the window once, after
+        // it has the captured image as its background.
         let _ = app.emit_to("selector", "selector-start", ());
     }
 }

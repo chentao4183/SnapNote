@@ -47,7 +47,13 @@ export default function SelectorWindow() {
     startRef.current = null;
     const win = getCurrentWebviewWindow();
     try {
-      await win.hide();
+      // The selector window must be hidden while we capture so it isn't in
+      // the shot. We do NOT call win.hide() here: every entry path into
+      // recapture() (mount + the selector-start event from F1/tray) is
+      // guaranteed to run while the window is already hidden — tray.rs no
+      // longer shows it, and the editor-exit path hides it. Calling hide()
+      // here would be a no-op the first time and, on repeat F1, would show
+      // then immediately hide the window (the old flash bug).
       await waitForPaint();
       const dataUrl = await captureScreen();
       if (modeRef.current === "selecting") {
