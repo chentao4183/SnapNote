@@ -87,6 +87,7 @@ npm run tauri build
 - 脚本有意**不**用 `tasklist | find` 做进程检测：在 Git-bash/MSYS 下裸 `find` 会被解析成 Unix 文件查找工具而非 Windows `find.exe`,导致检测静默失败、进程杀不掉,进而占用 exe 使链接/打包失败。延时用 `ping` 而非 `timeout` 也是同理。修改脚本时请保持这种跨 shell 无外部依赖的写法。
 - 在 Codex 沙箱内运行 MSI/NSIS 打包可能因 WiX `light.exe` 环境受限失败;编译安装包时应使用外部环境/提权执行该脚本。
 - 在 Git-bash/MSYS 下用 `cmd /c` 执行 `.cmd` 脚本时,裸 `/c` 会被 MSYS 路径转换当成路径,导致 `cmd` 只打印 Windows 横幅、不执行命令(表现为输出空或只有 `Microsoft Windows [...]`)。必须写成 `cmd //c`(双斜杠)或用绝对路径 `C:\Windows\System32\cmd.exe //c "scripts\xxx.cmd"`。这和上一条 `find`/`timeout` 是同一类 MSYS 陷阱。
+- **Tauri build script 增量缓存损坏**:某次 `tauri build` 报错 `failed to read plugin permissions: ... stream did not contain valid UTF-8`(文件是 `target/release/build/tauri-*/out/tauri-core-*-permission-files`),根因是该中间文件被写成了 Rust panic backtrace(可能因之前某次构建被打断/异常退出污染)。cargo 增量看不到这种损坏,不会自动恢复。修复:只删 `target/release/build/tauri-*/`(build script 输出)不够 —— 会连带导致 `can't find crate for tauri_utils` 之类的依赖链接丢失。最稳是 `cd src-tauri && cargo clean` 全量重编(约 4 分钟),或用 `target` 子目录清理工具。判断依据:od/hexdump 那个报错文件,若内容是 `/rustc/...`、`std::sync::once_lock::OnceLock` 之类的 backtrace 符号而非 capability 路径列表,就是这类污染。
 - **任何会话里踩到的一次性环境坑,解决后必须立即回写进本文件对应小节**(像上面这几条一样),而不是只在当前会话记住。新会话默认不继承对话记忆,只有写进 `AGENTS.md` 的规则才会在每次开局被读到,从而避免"每次都报同一个错"。
 
 ---
