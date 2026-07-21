@@ -1,4 +1,5 @@
 import type Konva from "konva";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { copyImageToClipboard, createPinWindow, saveImage } from "../ipc/bridge";
 import { useEditorStore } from "../store/editorStore";
 
@@ -70,9 +71,14 @@ export async function exportToFile(format: "png" | "jpg"): Promise<boolean> {
  * always-on-top, borderless, draggable window. Multiple pins can coexist;
  * each becomes its own window.
  *
- * The pin appears at the screenshot's original screen location (the crop
- * region's x/y), so it visually "lands back where the selection was" — the
- * same UX as Snipaste.
+ * The pin appears at the screenshot's original screen location, so it
+ * visually "lands back where the selection was" — the same UX as Snipaste.
+ *
+ * Position math: cropRegion is in the editor window's client-area logical
+ * coordinates. To land on the right screen pixel we add the editor window's
+ * own screen position (innerPosition, in physical px) converted to logical,
+ * so the pin aligns even if the selector window isn't at screen (0,0) —
+ * which can happen under DPI scaling or with multi-monitor setups.
  */
 export async function pinToScreen(): Promise<void> {
   const dataUrl = await composeDataUrl();
@@ -80,8 +86,27 @@ export async function pinToScreen(): Promise<void> {
   if (width < 1 || height < 1) {
     throw new Error("裁剪区域为空");
   }
+
+  // The editor currently always runs inside the selector window, so the
+  // current webview is the selector. Read its client-area origin in logical
+  // screen px and offset the crop region by it.
+  let originX = 0;
+  let originY = 0;
+  try {
+    const win = getCurrentWebviewWindow();
+    const [innerPos, factor] = await Promise.all([
+      win.innerPosition(),
+      win.scaleFactor().catch(() => 1),
+    ]);
+    // innerPosition is physical px; convert to logical to match cropRegion.
+    originX = innerPos.x / factor;
+    originY = innerPos.y / factor;
+  } catch {
+    // Fallback: assume the editor window is at screen (0,0).
+  }
+
   await createPinWindow(dataUrl, Math.round(width), Math.round(height), {
-    x: Math.round(x),
-    y: Math.round(y),
+    x: Math.round(originX + x),
+    y: Math.round(originY + y),
   });
 }

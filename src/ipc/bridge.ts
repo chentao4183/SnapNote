@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emitTo, type UnlistenFn } from "@tauri-apps/api/event";
-import { currentMonitor } from "@tauri-apps/api/window";
+import { currentMonitor, LogicalPosition } from "@tauri-apps/api/window";
 import { WebviewWindow, getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 // ---- Commands ----
@@ -87,12 +87,13 @@ export interface PinLoadPayload {
  * taken). If omitted, the pin is centered on the primary monitor. In either
  * case the position is clamped to keep the whole window on-screen.
  *
- * Handshake: we don't emit `pin-load` on `tauri://created` because at that
- * point the webview's JS is still booting and its `listen("pin-load")` is not
- * registered yet — Tauri drops events with no subscribers, so the pin would
- * receive nothing and render as a blank transparent window. Instead we wait
- * for a `pin-ready` event that the PinWindow emits once its listener is
- * attached, then send the payload.
+ * Two-step handshake to avoid both "no image" and "blank flash" bugs:
+ *   1. Wait for `pin-ready-{label}` (PinWindow has registered its pin-load
+ *      listener) before emitting pin-load. Tauri drops events with no
+ *      subscribers, and the webview's JS isn't ready at tauri://created.
+ *   2. Wait for `pin-rendered-{label}` (<img> finished decoding) before
+ *      calling win.show(), so the window appears with pixels already drawn
+ *      instead of flashing a blank rectangle while the PNG decodes.
  */
 export async function createPinWindow(
   dataUrl: string,
@@ -117,21 +118,71 @@ export async function createPinWindow(
     alwaysOnTop: true,
     skipTaskbar: true,
     transparent: true,
+    shadow: false,
     visible: false,
   });
 
-  // Wait for the PinWindow to signal its listener is attached, then send the
-  // payload. Timeout after 5s so a misbehaving window doesn't hang forever.
-  await new Promise<void>((resolve, reject) => {
+  // Two-step handshake to avoid a blank-frame flash:
+  //   1. pin-ready: the PinWindow has registered its pin-load listener.
+  //      Only then is it safe to emit pin-load (Tauri drops events with no
+  //      subscribers).
+  //   2. pin-rendered: the <img> has finished decoding. Only then do we
+  //      win.show(), so the window appears with pixels already on screen
+  //      instead of briefly showing a blank transparent rectangle.
+  await waitForEvent(`pin-ready-${label}`, 5000, "pin window did not become ready in time");
+
+  await emitTo(label, "pin-load", { dataUrl, width, height } satisfies PinLoadPayload);
+
+  // Don't let a decode hang block the pin forever — fall back to showing the
+  // window after 3s even if pin-rendered never arrives.
+  await waitForEvent(`pin-rendered-${label}`, 3000, "", { suppressTimeoutError: true });
+
+  // On Windows, decorations:false transparent windows can have an invisible
+  // DWM border that shifts the visible content relative to the requested
+  // x/y. Measure outer vs inner position and re-position so the inner
+  // (visible) top-left lands exactly at (x, y). Done before show() so the
+  // user never sees the offset version.
+  try {
+    const factor = await win.scaleFactor().catch(() => 1);
+    const outer = await win.outerPosition();
+    const inner = await win.innerPosition();
+    const dxLogical = (inner.x - outer.x) / factor;
+    const dyLogical = (inner.y - outer.y) / factor;
+    if (Math.abs(dxLogical) > 0.5 || Math.abs(dyLogical) > 0.5) {
+      await win.setPosition(new LogicalPosition(x - dxLogical, y - dyLogical));
+    }
+  } catch {
+    /* keep default position */
+  }
+
+  await win.show();
+  await win.setFocus();
+  return win;
+}
+
+/**
+ * Resolve when an event with the given name fires. Rejects after `timeoutMs`
+ * unless `suppressTimeoutError` is set, in which case it resolves silently —
+ * useful when the event is best-effort (e.g. a render signal we don't want
+ * to hard-fail on).
+ */
+function waitForEvent(
+  eventName: string,
+  timeoutMs: number,
+  timeoutMessage: string,
+  options?: { suppressTimeoutError?: boolean },
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
       void unlistenPromise.then((fn) => fn());
-      reject(new Error("pin window did not become ready in time"));
-    }, 5000);
+      if (options?.suppressTimeoutError) resolve();
+      else reject(new Error(timeoutMessage));
+    }, timeoutMs);
 
-    const unlistenPromise = listen(`pin-ready-${label}`, () => {
+    const unlistenPromise = listen(eventName, () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -139,11 +190,6 @@ export async function createPinWindow(
       resolve();
     });
   });
-
-  await emitTo(label, "pin-load", { dataUrl, width, height } satisfies PinLoadPayload);
-  await win.show();
-  await win.setFocus();
-  return win;
 }
 
 /**
