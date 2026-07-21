@@ -2,7 +2,7 @@ import { useActiveTool } from "../tools";
 import { useSelectionTool } from "../tools/useSelectionTool";
 import { useEditorShortcuts } from "../tools/useEditorShortcuts";
 import { hideCurrentWindow } from "../ipc/bridge";
-import { exportToFile } from "../canvas/exportCanvas";
+import { exportToFile, pinToScreen } from "../canvas/exportCanvas";
 import EditorStage from "../canvas/EditorStage";
 import Toolbar from "./Toolbar";
 import TextInputOverlay from "./TextInputOverlay";
@@ -28,6 +28,11 @@ export default function EditorView({ onExit }: Props) {
     onExit: closeEditor,
     onSave: () => {
       void exportToFile("png");
+    },
+    onPin: () => {
+      // No toolbar pointer available on keyboard trigger; let the pin fall
+      // back to the center of the screen via resolveInitialPosition.
+      void pinToScreen().then(() => closeEditor());
     },
   });
 

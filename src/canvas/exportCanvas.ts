@@ -1,5 +1,5 @@
 import type Konva from "konva";
-import { copyImageToClipboard, saveImage } from "../ipc/bridge";
+import { copyImageToClipboard, createPinWindow, saveImage } from "../ipc/bridge";
 import { useEditorStore } from "../store/editorStore";
 
 /**
@@ -16,8 +16,11 @@ export function setEditorStage(stage: Konva.Stage | null) {
  * Produce a data URL for just the selected region (background + annotations),
  * not the whole window-sized stage. Without this crop, toDataURL captures the
  * fullscreen stage and the exported image is mostly empty/transparent.
+ *
+ * Exported so the pin-to-screen flow can reuse the same composed image that
+ * save/copy produce.
  */
-async function composeDataUrl(): Promise<string> {
+export async function composeDataUrl(): Promise<string> {
   if (!stageRef) {
     throw new Error("editor stage not ready");
   }
@@ -60,4 +63,19 @@ export async function exportToFile(format: "png" | "jpg"): Promise<boolean> {
   }
   await saveImage(dataUrl, path, format);
   return true;
+}
+
+/**
+ * Pin the composed (cropped + annotated) image to the screen as a new
+ * always-on-top, borderless, draggable window. Multiple pins can coexist;
+ * each becomes its own window. The pin starts at 1:1 scale, anchored near the
+ * cursor so it appears where the user expects.
+ */
+export async function pinToScreen(pointer?: { x: number; y: number }): Promise<void> {
+  const dataUrl = await composeDataUrl();
+  const { width, height } = useEditorStore.getState().cropRegion;
+  if (width < 1 || height < 1) {
+    throw new Error("裁剪区域为空");
+  }
+  await createPinWindow(dataUrl, Math.round(width), Math.round(height), pointer);
 }

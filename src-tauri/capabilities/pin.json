@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "pin",
+  "description": "Capabilities for dynamically created pin windows (pin-*). Each pin is a borderless, always-on-top, non-taskbar window that can be moved, resized via setSize/setPosition, and closed.",
+  "windows": ["pin-*"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-scale-factor",
+    "core:window:allow-outer-position",
+    "core:window:allow-outer-size",
+    "core:event:default",
+    "core:event:allow-emit-to",
+    "core:webview:default",
+    "clipboard-manager:allow-write-image",
+    "dialog:allow-save"
+  ]
+}
