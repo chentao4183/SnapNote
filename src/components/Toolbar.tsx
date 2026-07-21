@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { exportToClipboard, exportToFile, pinToScreen } from "../canvas/exportCanvas";
 import { hideCurrentWindow } from "../ipc/bridge";
@@ -34,17 +34,6 @@ export default function Toolbar({ onClose }: Props) {
   const redo = useEditorStore((s) => s.redo);
   const [busy, setBusy] = useState(false);
   const [openPanel, setOpenPanel] = useState<StyleTool | null>(null);
-
-  // Track the latest pointer position in screen coordinates so a pin window
-  // can be opened near where the user clicked, not at a fixed default spot.
-  const pointerRef = useRef<{ x: number; y: number } | null>(null);
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      pointerRef.current = { x: e.screenX, y: e.screenY };
-    }
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
 
   const toolbarWidth = 346;
   const toolbarHeight = 36;
@@ -150,7 +139,7 @@ export default function Toolbar({ onClose }: Props) {
           style={btn(false)}
           onClick={() =>
             run(async () => {
-              await pinToScreen(pointerRef.current ?? undefined);
+              await pinToScreen();
               closeEditor();
             })
           }

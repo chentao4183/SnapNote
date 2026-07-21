@@ -80,9 +80,12 @@ export interface PinLoadPayload {
 /**
  * Create a new borderless, always-on-top, always-floating pin window showing
  * the given image data URL at 1:1 scale. Each call opens a fresh window, so
- * multiple pins can coexist on screen. The window starts near `pointer` (the
- * editor cursor position at click time), falling back to the center of the
- * primary monitor if no pointer is supplied.
+ * multiple pins can coexist on screen.
+ *
+ * `position` is the desired top-left in screen coordinates (typically the
+ * crop region's origin, so the pin lands back where the screenshot was
+ * taken). If omitted, the pin is centered on the primary monitor. In either
+ * case the position is clamped to keep the whole window on-screen.
  *
  * Handshake: we don't emit `pin-load` on `tauri://created` because at that
  * point the webview's JS is still booting and its `listen("pin-load")` is not
@@ -95,12 +98,12 @@ export async function createPinWindow(
   dataUrl: string,
   width: number,
   height: number,
-  pointer?: { x: number; y: number },
+  position?: { x: number; y: number },
 ): Promise<WebviewWindow> {
   const label = `pin-${pinCounter++}`;
 
-  // Compute an initial position that keeps the window fully on-screen.
-  const { x, y } = await resolveInitialPosition(pointer, width, height);
+  // Clamp the requested position so the whole window stays on the screen.
+  const { x, y } = await clampPositionToScreen(position, width, height);
 
   const win = new WebviewWindow(label, {
     url: "pin.html",
@@ -144,20 +147,18 @@ export async function createPinWindow(
 }
 
 /**
- * Pick an initial top-left for a new pin window: prefer near the cursor
- * (offset down-right by 16px so the pin isn't under the pointer), but clamp
- * so the whole window stays within the primary monitor's work area.
+ * Clamp a desired top-left so the window's full width/height stays inside the
+ * current monitor's work area. If `position` is null, the window is centered
+ * on the monitor instead.
  */
-async function resolveInitialPosition(
-  pointer: { x: number; y: number } | undefined,
+async function clampPositionToScreen(
+  position: { x: number; y: number } | undefined,
   width: number,
   height: number,
 ): Promise<{ x: number; y: number }> {
   type Monitor = { size: { width: number; height: number }; position: { x: number; y: number } };
   let monitor: Monitor | null = null;
   try {
-    // Module-level helper (operates on the current window). Returns the
-    // monitor the window is on, or null if it can't be determined.
     const current = await currentMonitor();
     monitor = current && current.position && current.size ? (current as Monitor) : null;
   } catch {
@@ -171,15 +172,15 @@ async function resolveInitialPosition(
 
   let x: number;
   let y: number;
-  if (pointer) {
-    x = pointer.x + 16;
-    y = pointer.y + 16;
+  if (position) {
+    x = position.x;
+    y = position.y;
   } else {
     x = baseX + Math.max(0, (availW - width) / 2);
     y = baseY + Math.max(0, (availH - height) / 2);
   }
 
-  // Clamp to keep the whole window inside the work area.
+  // Clamp so the whole window stays inside the work area.
   x = Math.min(x, baseX + availW - width);
   y = Math.min(y, baseY + availH - height);
   x = Math.max(x, baseX);

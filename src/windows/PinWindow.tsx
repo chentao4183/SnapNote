@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
+import { LogicalSize } from "@tauri-apps/api/window";
 import { copyImageToClipboard, saveImage, type PinLoadPayload } from "../ipc/bridge";
-import { clampScale, scaleAroundCenter, scaleFromCornerDrag } from "../canvas/pinGeometry";
+import { clampScale, scaleFromCornerDrag } from "../canvas/pinGeometry";
 
 /**
  * A Snipaste-style pinned screenshot window: borderless, always-on-top,
@@ -55,31 +55,35 @@ export default function PinWindow() {
     };
   }, []);
 
-  // Apply scaleRef to the physical window, keeping the center point fixed.
-  // All math is done in physical pixels (outerPosition/outerSize return
-  // physical units); the final setSize/setPosition calls convert to logical.
-  //
-  // We keep this in a ref whose .current is reassigned every render so the
-  // latest scaleRef/baseSizeRef values are read inside, while preserving a
-  // stable function identity for the wheel/corner handlers that close over it.
+  // Scale factor is constant for a window's lifetime on a single monitor;
+  // cache it after the payload arrives so the per-wheel-tick resize doesn't
+  // pay an IPC round-trip for it. (Windows locks the factor at creation.)
+  const scaleFactorRef = useRef(1);
+  useEffect(() => {
+    if (!payload) return;
+    void getCurrentWebviewWindow()
+      .scaleFactor()
+      .then((f) => {
+        scaleFactorRef.current = f;
+      })
+      .catch(() => {
+        /* keep default 1 */
+      });
+  }, [payload]);
+
+  // Apply scaleRef to the physical window, anchored at the TOP-LEFT corner.
+  // Because the anchor is the top-left, we only need to setSize — the window's
+  // position stays fixed, so we skip the outerPosition/outerSize IPC calls
+  // that the previous center-anchored version needed. That keeps each wheel
+  // tick down to a single setSize IPC, which is what makes wheel zoom feel
+  // responsive instead of laggy.
   const applyScale = useRef<() => Promise<void>>(async () => {});
   applyScale.current = async () => {
     const win = getCurrentWebviewWindow();
-    const factor = await win.scaleFactor().catch(() => 1);
-    const pos = await win.outerPosition();
-    const size = await win.outerSize();
     const base = baseSizeRef.current;
-    // Anchor on the current center; the pure helper handles the geometry.
-    // prevScale is the physical->base ratio so scaleAroundCenter can recover
-    // the base size from the current physical rect.
-    const prevScale = (size.width || 1) / (base.width || 1);
-    const next = scaleAroundCenter(
-      { x: pos.x, y: pos.y, width: size.width, height: size.height },
-      scaleRef.current,
-      prevScale,
-    );
-    await win.setSize(new LogicalSize(next.width / factor, next.height / factor));
-    await win.setPosition(new LogicalPosition(next.x / factor, next.y / factor));
+    const w = Math.max(1, Math.round(base.width * scaleRef.current));
+    const h = Math.max(1, Math.round(base.height * scaleRef.current));
+    await win.setSize(new LogicalSize(w, h));
   };
 
   // Wheel scaling, rAF-throttled so rapid wheel events coalesce.

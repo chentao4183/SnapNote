@@ -68,14 +68,20 @@ export async function exportToFile(format: "png" | "jpg"): Promise<boolean> {
 /**
  * Pin the composed (cropped + annotated) image to the screen as a new
  * always-on-top, borderless, draggable window. Multiple pins can coexist;
- * each becomes its own window. The pin starts at 1:1 scale, anchored near the
- * cursor so it appears where the user expects.
+ * each becomes its own window.
+ *
+ * The pin appears at the screenshot's original screen location (the crop
+ * region's x/y), so it visually "lands back where the selection was" — the
+ * same UX as Snipaste.
  */
-export async function pinToScreen(pointer?: { x: number; y: number }): Promise<void> {
+export async function pinToScreen(): Promise<void> {
   const dataUrl = await composeDataUrl();
-  const { width, height } = useEditorStore.getState().cropRegion;
+  const { x, y, width, height } = useEditorStore.getState().cropRegion;
   if (width < 1 || height < 1) {
     throw new Error("裁剪区域为空");
   }
-  await createPinWindow(dataUrl, Math.round(width), Math.round(height), pointer);
+  await createPinWindow(dataUrl, Math.round(width), Math.round(height), {
+    x: Math.round(x),
+    y: Math.round(y),
+  });
 }
