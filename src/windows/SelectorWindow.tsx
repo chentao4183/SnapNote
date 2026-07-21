@@ -161,10 +161,13 @@ export default function SelectorWindow() {
     <Stage width={size.width} height={size.height} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
       <Layer>
         <KonvaImage image={image} x={0} y={0} width={size.width} height={size.height} listening={false} />
+        {/* Dim fill MUST match SelectionMaskRects below and CropOverlay.tsx
+            so the mask color doesn't shift when the user releases the mouse
+            and enters the editor. */}
         {selection ? (
           <SelectionMaskRects stageWidth={size.width} stageHeight={size.height} selection={selection} />
         ) : (
-          <Rect x={0} y={0} width={size.width} height={size.height} fill="rgba(0,0,0,0.3)" listening={false} />
+          <Rect x={0} y={0} width={size.width} height={size.height} fill="rgba(0,0,0,0.45)" listening={false} />
         )}
         {selection && (
           <Rect
@@ -194,7 +197,8 @@ function SelectionMaskRects({
   selection: Selection;
 }) {
   const { x, y, width, height } = selection;
-  const fill = "rgba(0,0,0,0.3)";
+  // Keep in sync with the pre-selection Rect above and CropOverlay.tsx.
+  const fill = "rgba(0,0,0,0.45)";
   return (
     <>
       <Rect x={0} y={0} width={stageWidth} height={Math.max(0, y)} fill={fill} listening={false} />
