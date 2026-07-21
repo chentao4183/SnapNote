@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emitTo, type UnlistenFn } from "@tauri-apps/api/event";
-import { currentMonitor } from "@tauri-apps/api/window";
+import { currentMonitor, LogicalPosition } from "@tauri-apps/api/window";
 import { WebviewWindow, getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 // ---- Commands ----
@@ -118,6 +118,7 @@ export async function createPinWindow(
     alwaysOnTop: true,
     skipTaskbar: true,
     transparent: true,
+    shadow: false,
     visible: false,
   });
 
@@ -135,6 +136,24 @@ export async function createPinWindow(
   // Don't let a decode hang block the pin forever — fall back to showing the
   // window after 3s even if pin-rendered never arrives.
   await waitForEvent(`pin-rendered-${label}`, 3000, "", { suppressTimeoutError: true });
+
+  // On Windows, decorations:false transparent windows can have an invisible
+  // DWM border that shifts the visible content relative to the requested
+  // x/y. Measure outer vs inner position and re-position so the inner
+  // (visible) top-left lands exactly at (x, y). Done before show() so the
+  // user never sees the offset version.
+  try {
+    const factor = await win.scaleFactor().catch(() => 1);
+    const outer = await win.outerPosition();
+    const inner = await win.innerPosition();
+    const dxLogical = (inner.x - outer.x) / factor;
+    const dyLogical = (inner.y - outer.y) / factor;
+    if (Math.abs(dxLogical) > 0.5 || Math.abs(dyLogical) > 0.5) {
+      await win.setPosition(new LogicalPosition(x - dxLogical, y - dyLogical));
+    }
+  } catch {
+    /* keep default position */
+  }
 
   await win.show();
   await win.setFocus();
