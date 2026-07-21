@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
 import { copyImageToClipboard, saveImage, type PinLoadPayload } from "../ipc/bridge";
@@ -32,14 +32,26 @@ export default function PinWindow() {
   const dataUrl = payload?.dataUrl ?? "";
 
   // Receive the payload from the editor window.
+  // We register the listener BEFORE emitting pin-ready, so by the time the
+  // creator (createPinWindow in bridge.ts) sees our ready signal and sends
+  // pin-load, this listener is guaranteed to be subscribed.
   useEffect(() => {
-    const unlisten = listen<PinLoadPayload>("pin-load", (event) => {
+    let cancelled = false;
+    const unlistenPromise = listen<PinLoadPayload>("pin-load", (event) => {
+      if (cancelled) return;
       baseSizeRef.current = { width: event.payload.width, height: event.payload.height };
       scaleRef.current = 1;
       setPayload(event.payload);
     });
+    // Signal readiness so the creator emits pin-load. The event name is
+    // scoped to this window's label to avoid cross-talk between pins.
+    void (async () => {
+      const label = getCurrentWebviewWindow().label;
+      await emit(`pin-ready-${label}`);
+    })();
     return () => {
-      unlisten.then((fn) => fn());
+      cancelled = true;
+      void unlistenPromise.then((fn) => fn());
     };
   }, []);
 

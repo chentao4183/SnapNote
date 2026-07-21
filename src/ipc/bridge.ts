@@ -83,6 +83,13 @@ export interface PinLoadPayload {
  * multiple pins can coexist on screen. The window starts near `pointer` (the
  * editor cursor position at click time), falling back to the center of the
  * primary monitor if no pointer is supplied.
+ *
+ * Handshake: we don't emit `pin-load` on `tauri://created` because at that
+ * point the webview's JS is still booting and its `listen("pin-load")` is not
+ * registered yet — Tauri drops events with no subscribers, so the pin would
+ * receive nothing and render as a blank transparent window. Instead we wait
+ * for a `pin-ready` event that the PinWindow emits once its listener is
+ * attached, then send the payload.
  */
 export async function createPinWindow(
   dataUrl: string,
@@ -110,10 +117,24 @@ export async function createPinWindow(
     visible: false,
   });
 
-  // The constructor returns immediately; wait until the webview is ready
-  // before emitting the payload so the listener is guaranteed to be attached.
-  await new Promise<void>((resolve) => {
-    win.once("tauri://created", () => resolve());
+  // Wait for the PinWindow to signal its listener is attached, then send the
+  // payload. Timeout after 5s so a misbehaving window doesn't hang forever.
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      void unlistenPromise.then((fn) => fn());
+      reject(new Error("pin window did not become ready in time"));
+    }, 5000);
+
+    const unlistenPromise = listen(`pin-ready-${label}`, () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      void unlistenPromise.then((fn) => fn());
+      resolve();
+    });
   });
 
   await emitTo(label, "pin-load", { dataUrl, width, height } satisfies PinLoadPayload);
