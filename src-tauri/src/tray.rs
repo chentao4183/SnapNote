@@ -20,7 +20,7 @@ pub fn trigger_screenshot<R: Runtime>(app: &AppHandle<R>) {
 /// Build the system-tray icon, its context menu, and event handlers.
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let screenshot_item = MenuItem::with_id(app, "screenshot", "截图 (F1)", true, None::<&str>)?;
-    let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "关于 StepMark", true, None::<&str>)?;
     // Autostart checkbox reflects the registry truth (source of truth), read once
     // at build time. Toggling re-reads + writes the registry and re-syncs the box.
     let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);

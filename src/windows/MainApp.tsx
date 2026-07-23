@@ -53,29 +53,63 @@ export default function MainApp() {
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui", color: "#222", height: "100vh", boxSizing: "border-box" }}>
-      <h2 style={{ marginBottom: 8 }}>StepMark</h2>
-      <p style={{ color: "#666" }}>Running in the background. Press <b>F1</b> to capture a screenshot.</p>
+    <div style={{ padding: 24, fontFamily: "system-ui", color: "#222", height: "100vh", boxSizing: "border-box", overflowY: "auto" }}>
+      <h2 style={{ marginBottom: 8 }}>关于 StepMark</h2>
+      <p style={{ color: "#666", marginTop: 0 }}>
+        Windows 桌面截图批注工具，驻留系统托盘，按 <b>F1</b> 随时截图。
+      </p>
+
+      {showSetup && (
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "10px 16px",
+            background: "#f4f6ff",
+            border: "1px solid #c9d4ff",
+            borderRadius: 8,
+            color: "#3a4a8f",
+            fontSize: 14,
+          }}
+        >
+          👋 首次使用 StepMark？请先阅读以下说明。
+        </div>
+      )}
+
+      <section style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 8 }}>产品简介</h3>
+        <p style={{ color: "#444", lineHeight: 1.7, marginTop: 0 }}>
+          StepMark 的核心是<b>智能标注</b>：在截图上拖拽一次，一步生成「目标框 + 箭头 + 文字标签」组合，
+          不需要分别切换矩形、箭头、文字工具。适合日常问题反馈、需求评审、文档教程截图。
+        </p>
+      </section>
+
+      <section style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 8 }}>截图流程</h3>
+        <ol style={{ color: "#444", lineHeight: 1.9, paddingLeft: 20, margin: 0 }}>
+          <li>
+            按 <b>F1</b>（或左键单击托盘图标），进入屏幕框选模式。
+          </li>
+          <li>拖动鼠标框选要截取的区域，松开后自动进入编辑器。</li>
+          <li>
+            在编辑器里批注：智能标注一步生成组合，也可单独使用矩形、箭头、文字、马赛克。
+          </li>
+          <li>完成后点击「复制」送入剪贴板，或点击「保存」导出为 PNG / JPG。</li>
+        </ol>
+      </section>
 
       {showSetup && (
         <div
           style={{
             marginTop: 24,
             padding: 16,
-            background: "#f4f6ff",
-            border: "1px solid #c9d4ff",
+            background: "#f7f8fa",
+            border: "1px solid #e3e6eb",
             borderRadius: 10,
-            maxWidth: 420,
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Welcome to StepMark 👋</h3>
-          <p style={{ color: "#555", fontSize: 14 }}>
-            Capture any region with <b>F1</b>, annotate it with smart labels, arrows, mosaic, and more — then copy or
-            save in one click.
-          </p>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, margin: "12px 0" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 12 }}>
             <input type="checkbox" checked={autostart} onChange={(e) => toggleAutostart(e.target.checked)} />
-            Launch StepMark when I log in
+            开机时自动启动 StepMark
           </label>
           <button
             onClick={finishSetup}
@@ -88,7 +122,7 @@ export default function MainApp() {
               cursor: "pointer",
             }}
           >
-            Got it
+            我知道了
           </button>
         </div>
       )}
