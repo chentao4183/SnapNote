@@ -28,7 +28,7 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         CheckMenuItem::with_id(app, "autostart", "开机自启", true, autostart_enabled, None::<&str>)?;
     let settings_item = Submenu::with_items(app, "设置", true, &[&autostart_item])?;
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&screenshot_item, &show_item, &settings_item, &quit_item])?;
+    let menu = Menu::with_items(app, &[&screenshot_item, &settings_item, &show_item, &quit_item])?;
 
     // Clone the autostart item into the menu-event closure so it can flip its
     // checkmark directly. Tauri menu items are Send + Sync + Clone.
