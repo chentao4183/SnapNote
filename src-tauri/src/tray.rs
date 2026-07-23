@@ -26,7 +26,8 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);
     let autostart_item =
         CheckMenuItem::with_id(app, "autostart", "开机自启", true, autostart_enabled, None::<&str>)?;
-    let settings_item = Submenu::with_items(app, "设置", true, &[&autostart_item])?;
+    let shortcut_item = MenuItem::with_id(app, "shortcut-settings", "快捷键", true, None::<&str>)?;
+    let settings_item = Submenu::with_items(app, "设置", true, &[&autostart_item, &shortcut_item])?;
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&screenshot_item, &settings_item, &show_item, &quit_item])?;
 
@@ -60,6 +61,12 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 if write.is_ok() {
                     let _ = autostart_for_event.set_checked(next);
                     let _ = app.emit_to("main", "autostart-changed", next);
+                }
+            }
+            "shortcut-settings" => {
+                if let Some(win) = app.get_webview_window("shortcut-settings") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
                 }
             }
             "quit" => {

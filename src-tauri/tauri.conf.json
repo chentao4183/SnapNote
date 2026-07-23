@@ -19,6 +19,15 @@
         "visible": false
       },
       {
+        "label": "shortcut-settings",
+        "title": "快捷键设置",
+        "url": "shortcut-settings.html",
+        "width": 420,
+        "height": 240,
+        "resizable": false,
+        "visible": false
+      },
+      {
         "label": "selector",
         "title": "StepMark",
         "url": "selector.html",

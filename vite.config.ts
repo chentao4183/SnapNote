@@ -29,7 +29,7 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-  // 4. multi-page build: main / selector / editor / pin windows each get their own entry
+  // 4. multi-page build: each window gets its own entry html
   build: {
     rollupOptions: {
       input: {
@@ -37,6 +37,7 @@ export default defineConfig(async () => ({
         selector: "selector.html",
         editor: "editor.html",
         pin: "pin.html",
+        "shortcut-settings": "shortcut-settings.html",
       },
     },
   },

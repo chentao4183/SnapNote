@@ -8,6 +8,25 @@ const LEGACY_SETTINGS_STORAGE_KEY = "snapnote.settings.v1";
 /** Default screenshot shortcut. Matches the Rust-side default registered at startup. */
 export const DEFAULT_SCREENSHOT_SHORTCUT = "F1";
 
+/**
+ * Human-readable label for a stored shortcut string (e.g. "Ctrl+Shift+KeyA" -> "Ctrl + Shift + A").
+ * Shared by the about page (display) and the shortcut settings window (recorder feedback).
+ */
+export function shortcutLabel(shortcut: string): string {
+  return shortcut
+    .split("+")
+    .map((tok) => {
+      if (tok === "Ctrl") return "Ctrl";
+      if (tok === "Shift") return "Shift";
+      if (tok === "Alt") return "Alt";
+      if (tok === "Super") return "Win";
+      if (/^Key[A-Z]$/.test(tok)) return tok.slice(3);
+      if (/^Digit[0-9]$/.test(tok)) return tok.slice(5);
+      return tok;
+    })
+    .join(" + ");
+}
+
 export interface Settings {
   /** Global screenshot shortcut in global-hotkey string form (e.g. "F1", "Ctrl+Shift+KeyA"). */
   screenshotShortcut: string;
