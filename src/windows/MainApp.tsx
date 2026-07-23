@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { onScreenshotTriggered, showSelectorWindow, getAutostart, setAutostart } from "../ipc/bridge";
+import { onScreenshotTriggered, onAutostartChanged, showSelectorWindow, getAutostart, setAutostart } from "../ipc/bridge";
 
 const FIRST_RUN_KEY = "stepmark.firstRunDone";
 const LEGACY_FIRST_RUN_KEY = "snapnote.firstRunDone";
@@ -27,8 +27,13 @@ export default function MainApp() {
     const unlisten = onScreenshotTriggered(() => {
       showSelectorWindow();
     });
+    // Keep the checkbox in sync when toggled from the tray menu.
+    const unlistenAutostart = onAutostartChanged((enabled) => {
+      setAutostartState(enabled);
+    });
     return () => {
       unlisten.then((fn) => fn());
+      unlistenAutostart.then((fn) => fn());
     };
   }, []);
 

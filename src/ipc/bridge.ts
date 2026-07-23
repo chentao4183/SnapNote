@@ -33,6 +33,14 @@ export function onScreenshotTriggered(cb: () => void): Promise<UnlistenFn> {
   return listen("screenshot-triggered", () => cb());
 }
 
+/**
+ * Fired from Rust when the tray "开机自启" checkbox is toggled, so the main
+ * window's UI stays in sync with the registry truth if it's open.
+ */
+export function onAutostartChanged(cb: (enabled: boolean) => void): Promise<UnlistenFn> {
+  return listen<boolean>("autostart-changed", (event) => cb(event.payload));
+}
+
 // ---- Window controls ----
 
 /** Show and focus the selector window (called from the main window on F1). */
