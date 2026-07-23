@@ -34,7 +34,10 @@ pub fn run() {
             Some(vec!["--autostarted"]),
         ))
         .setup(move |app| {
-            // Register the F1 hotkey (no modifiers).
+            // Register the F1 hotkey (no modifiers) as the out-of-the-box default.
+            // If the user has a custom shortcut persisted in localStorage, the main
+            // window's frontend will invoke set_screenshot_shortcut after it loads
+            // to swap F1 out.
             app.global_shortcut()
                 .register(shortcut)
                 .expect("failed to register F1 shortcut");
@@ -43,6 +46,7 @@ pub fn run() {
             migrate::cleanup_legacy_autostart();
             Ok(())
         })
+        .manage(commands::shortcut::CurrentShortcut::default())
         .invoke_handler(tauri::generate_handler![
             greet,
             commands::screenshot::capture_screen,
@@ -50,6 +54,8 @@ pub fn run() {
             commands::save::save_image,
             commands::autostart::get_autostart,
             commands::autostart::set_autostart,
+            commands::shortcut::get_screenshot_shortcut,
+            commands::shortcut::set_screenshot_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -27,6 +27,21 @@ export async function setAutostart(enabled: boolean): Promise<void> {
   await invoke("set_autostart", { enabled });
 }
 
+// ---- Screenshot shortcut ----
+
+/** Returns the screenshot shortcut currently registered in Rust (defaults to "F1"). */
+export async function getScreenshotShortcut(): Promise<string> {
+  return invoke<string>("get_screenshot_shortcut");
+}
+
+/**
+ * Validate + swap + persist a new screenshot shortcut. Throws with a Chinese
+ * error message if the key string is invalid or registration fails.
+ */
+export async function setScreenshotShortcut(key: string): Promise<void> {
+  await invoke("set_screenshot_shortcut", { key });
+}
+
 // ---- Events ----
 
 export function onScreenshotTriggered(cb: () => void): Promise<UnlistenFn> {
