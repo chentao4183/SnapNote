@@ -42,7 +42,7 @@ pub fn set_screenshot_shortcut(
         .map_err(|e| format!("注销旧快捷键失败: {e}"))?;
 
     app.global_shortcut()
-        .register(&key)
+        .register(key.as_str())
         .map_err(|e| format!("注册快捷键「{key}」失败: {e}"))?;
 
     if let Ok(mut guard) = state.0.lock() {
