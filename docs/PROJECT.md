@@ -312,8 +312,8 @@ npm run tauri build
 
 | 设置项 | 类型 | 当前状态 | 说明 |
 |--------|------|----------|------|
-| 开机自启 | 开关 | ⚠️ 只在首启向导出现一次 | 补一个常驻开关,任何时候可改 |
-| 截图快捷键 | 快捷键捕获 | ❌ F1 硬编码不可改 | **放开自定义**(见 10.4) |
+| 开机自启 | 开关 | ✅ 已实施 | 托盘「设置 → 开机自启」常驻开关,任何时候可改;注册表为真值 |
+| 截图快捷键 | 快捷键捕获 | ✅ 已实施 | 托盘「设置 → 快捷键」录入;持久化在 Rust `settings.json`(见 10.4) |
 | 导出格式默认值 | 单选 PNG/JPG | ⚠️ Rust 支持 JPG 但 UI 只有 PNG | UI 补 JPG,加 JPEG 质量滑条 |
 | 默认保存路径 + 免对话框 | 目录选择 + 开关 | ❌ 每次弹对话框 | 批量截图场景实用 |
 
@@ -332,29 +332,35 @@ npm run tauri build
 - 捕捉鼠标光标、多显示器选择(xcap 底层支持,但属功能扩展非设置)。
 - 便携版、DPI 感知、日志面板(Snipaste 高级类,非 MVP 必需)。
 
-### 10.4 快捷键自定义 — 需同步更新不可变决策
+### 10.4 快捷键自定义(已实施)
 
-AGENTS.md「不可变决策」当前写:触发快捷键 **F1**(不可改)。实施快捷键自定义时,这一行**必须同步改为**:
+已落地。AGENTS.md「不可变决策」的触发快捷键已同步更新为:**默认 F1,用户可在托盘「设置 → 快捷键」中改为任意全局快捷键**。
 
-| 平台 | 仅 Windows x64,不做 macOS/Linux |
-|------|------|
-| 触发快捷键 | **默认 F1,用户可在设置里改为任意全局快捷键** |
+已实现内容:
 
-实施要点(供后续工程参考,本轮不写代码):
+- 托盘「设置 → 快捷键」打开独立的快捷键设置窗口,录入组合键(修饰键 + 主键)。
+- 快捷键持久化在 Rust 端 `settings.json`(不放前端 localStorage,因为 Tauri 在 Windows 上各 webview 窗口的 localStorage 互相隔离,跨窗口不可靠)。
+- 启动时 Rust 不预注册任何快捷键,由 main 窗口加载后调 `init_screenshot_shortcut` 注册持久化的键(默认 F1),保证初始注册和改键走同一条字符串路径,避免 id 错位导致旧快捷键残留。
+- 改键走 `set_screenshot_shortcut`:`unregister(旧键)` → `register(新键)` → 写盘 → emit `shortcut-changed` 通知其它窗口刷新镜像。
+- 托盘菜单「截图 (...)」文字随当前快捷键实时更新。
 
-- Rust 端 `lib.rs` 当前一次性 `register(F1)`,改为**启动时从持久化读取用户配置的 shortcut 再 register**,并提供 `unregister` + `register` 的重注册命令。
-- 前端需要一个最小化的快捷键捕获控件(单键 + 修饰键组合),捕获后写入持久化、调用重注册命令。
-- 需做**冲突检测**(至少提示用户该组合可能被系统/其他应用占用,不做强校验)。
-- 快捷键持久化纳入下述统一偏好层。
+实现踩坑(已修复,记录于此避免重蹈):
 
-### 10.5 持久化层规划
+- **旧快捷键改键后仍可用**:根因是启动用 `Shortcut::new(None, Code::F1)` 对象注册、改键用字符串注册,两条路径标识不一致。修法:启动不预注册,统一由字符串路径注册。
+- **多窗口快捷键不一致 / 重启丢失**:根因是前端 localStorage 在 Windows 上按 webview 窗口分区隔离。修法:持久化搬到 Rust 端 `settings.json`。
 
-当前 3 个 localStorage key 散落(`stepmark.toolStyles.v1`、`stepmark.numbering.v1`、`stepmark.firstRunDone`),`editorStore` 完全不持久化。设置面板新增的偏好建议:
+### 10.5 持久化层约定
 
-- **新增一个 `stepmark.settings.v1` key**(沿用 localStorage,不引入 `tauri-plugin-store`,保持现状一致性),承载:开机自启、截图快捷键、默认导出格式、JPEG 质量、默认保存路径、免对话框开关、框选后动作、默认工具、命名规则模板等应用级偏好。
-- 工具样式、编号设置**保持各自的 key 不变**,不强行合并,避免迁移风险。
-- 首启向导的「开机自启」开关迁移到设置面板后,首启向导可保留为一次性引导(或移除),`stepmark.firstRunDone` 标记位保留语义。
-- 所有持久化字段都要有**版本号 + 校验/迁移函数**(对齐现有 `toolStyleStore`/`numberingStore` 的写法),字段缺失时回退默认值。
+设置项按「是否需要跨窗口共享」分两类持久化:
+
+- **应用级偏好(需跨窗口共享)** → **Rust 端 `settings.json`**(`%APPDATA%\com.stepmark.app\settings.json`,由 `src-tauri/src/settings.rs` 读写)。原因:Tauri 在 Windows 上各 webview 窗口的 localStorage **互相隔离**,main 窗口读不到 shortcut-settings 窗口写的值,重启还可能丢失。已落地的快捷键(`screenshotShortcut`)就走这条。后续新增的应用级偏好(默认导出格式、JPEG 质量、默认保存路径、免对话框开关、框选后动作、默认工具、命名规则模板)都应加进这个 `Settings` struct。
+- **单窗口工具样式** → 保留各自 localStorage key(`stepmark.toolStyles.v1`、`stepmark.numbering.v1`)。这些只在编辑器窗口读写,不存在跨窗口问题,不强行迁移避免风险。`editorStore` 仍不持久化(每次截图会话重置)。
+- 首启向导的 `stepmark.firstRunDone` 标记保留 localStorage(main 窗口独占,无跨窗口需求)。
+
+约定:
+
+- `settings.json` 的 `Settings` struct 用 `serde`,`#[serde(default)]` 保证字段缺失/损坏时安全回退默认值,不崩溃。
+- 前端只通过 `get_screenshot_shortcut` / `set_screenshot_shortcut` 等 invoke 间接读写,**不直接碰 localStorage 也不直接碰 Rust 文件**;前端 `settingsStore` 降为内存镜像,窗口挂载时从 Rust 读真值刷新。
 
 ### 10.6 入口与交互草案
 

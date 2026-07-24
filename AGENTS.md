@@ -47,8 +47,8 @@
 | 平台 | 仅 Windows x64,不做 macOS/Linux |
 | 技术栈 | Tauri 2 + React 19 + TypeScript + Vite + Konva.js + Zustand |
 | 截图底层 | xcap crate,不要改成 WinRT Graphics.Capture / GDI |
-| 触发快捷键 | F1 |
-| 流程 | F1 框选 → 直接进编辑器 → 批注 → 复制/保存 |
+| 触发快捷键 | 默认 F1,用户可在托盘「设置 → 快捷键」中改为任意全局快捷键;持久化在 Rust 端 `settings.json`(不放 localStorage,因 Tauri 在 Windows 上各 webview 窗口的 localStorage 互相隔离) |
+| 流程 | 按快捷键框选 → 直接进编辑器 → 批注 → 复制/保存 |
 | 智能标注 | 目标框可选矩形/椭圆/无;有目标框时箭头从最近边连接并外移;无目标框时拖出箭头并添加文字标签 |
 | 视觉风格 | 默认红色 `#ff4757`,线宽 3px,字体跟随系统;用户可在工具面板调整 |
 | 工具栏 | 智能标注 / 矩形 / 箭头 / 文字 / 马赛克 / 复制 / 保存 |
