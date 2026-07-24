@@ -1,9 +1,14 @@
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, Submenu},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, Runtime,
+    AppHandle, Emitter, Manager, Runtime, Wry,
 };
 use tauri_plugin_autostart::ManagerExt;
+
+/// Holds the "截图 (...)" tray menu item so other modules (shortcut commands)
+/// can update its text without re-querying the (read-only) tray menu graph.
+/// Menu items are Arc-backed and Clone, so cloning into state is cheap.
+pub struct ScreenshotMenuItem<R: Runtime>(pub MenuItem<R>);
 
 pub fn trigger_screenshot<R: Runtime>(app: &AppHandle<R>) {
     if let Some(_win) = app.get_webview_window("selector") {
@@ -14,6 +19,14 @@ pub fn trigger_screenshot<R: Runtime>(app: &AppHandle<R>) {
         // background is ready. recapture() will show the window once, after
         // it has the captured image as its background.
         let _ = app.emit_to("selector", "selector-start", ());
+    }
+}
+
+/// Update the tray "截图 (...)" menu item text to reflect the active shortcut.
+/// `label` is the human-readable form (e.g. "F1", "Ctrl + Shift + A").
+pub fn update_screenshot_label(app: &AppHandle<Wry>, label: &str) {
+    if let Some(item) = app.try_state::<ScreenshotMenuItem<Wry>>() {
+        let _ = item.inner().0.set_text(format!("截图 ({label})"));
     }
 }
 
@@ -80,6 +93,10 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             }
         })
         .build(app)?;
+
+    // Expose the screenshot menu item so shortcut commands can keep its text
+    // in sync with the active hotkey.
+    app.manage(ScreenshotMenuItem(screenshot_item));
 
     Ok(())
 }

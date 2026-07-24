@@ -2,6 +2,8 @@ use std::sync::Mutex;
 
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
+use crate::tray;
+
 /// Default shortcut registered at startup, mirrored here as the fallback.
 const DEFAULT_SHORTCUT: &str = "F1";
 
@@ -14,6 +16,30 @@ const DEFAULT_SHORTCUT: &str = "F1";
 /// consistent.
 #[derive(Default)]
 pub struct CurrentShortcut(pub Mutex<Option<String>>);
+
+/// Human-readable label for a stored shortcut string (mirrors the frontend
+/// shortcutLabel): "Ctrl+Shift+KeyA" -> "Ctrl + Shift + A".
+fn label_for(shortcut: &str) -> String {
+    shortcut
+        .split('+')
+        .map(|tok| match tok {
+            "Ctrl" => "Ctrl",
+            "Shift" => "Shift",
+            "Alt" => "Alt",
+            "Super" => "Win",
+            other => {
+                if let Some(rest) = other.strip_prefix("Key") {
+                    rest
+                } else if let Some(rest) = other.strip_prefix("Digit") {
+                    rest
+                } else {
+                    other
+                }
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" + ")
+}
 
 /// Returns the currently registered screenshot shortcut, or the default "F1"
 /// when no custom shortcut has been set.
@@ -38,8 +64,10 @@ pub fn init_screenshot_shortcut(
         .register(key.as_str())
         .map_err(|e| format!("注册快捷键「{key}」失败: {e}"))?;
     if let Ok(mut guard) = state.0.lock() {
-        *guard = Some(key);
+        *guard = Some(key.clone());
     }
+    // Keep the tray menu text in sync with the active shortcut.
+    tray::update_screenshot_label(&app, &label_for(&key));
     Ok(())
 }
 
@@ -83,8 +111,10 @@ pub fn set_screenshot_shortcut(
             .map_err(|e| format!("注册快捷键「{key}」失败: {e}"))?;
 
         if let Ok(mut guard) = state.0.lock() {
-            *guard = Some(key);
+            *guard = Some(key.clone());
         }
+        // Keep the tray menu text in sync with the active shortcut.
+        tray::update_screenshot_label(&app, &label_for(&key));
     }
     Ok(())
 }
