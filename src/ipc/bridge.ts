@@ -42,6 +42,15 @@ export async function setScreenshotShortcut(key: string): Promise<void> {
   await invoke("set_screenshot_shortcut", { key });
 }
 
+/**
+ * First-time registration of the screenshot shortcut from the main window,
+ * using the persisted key (defaults to "F1"). Rust registers nothing at
+ * startup, so this is the single registration path and avoids id mismatches.
+ */
+export async function initScreenshotShortcut(key: string): Promise<void> {
+  await invoke("init_screenshot_shortcut", { key });
+}
+
 // ---- Events ----
 
 export function onScreenshotTriggered(cb: () => void): Promise<UnlistenFn> {

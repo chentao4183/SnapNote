@@ -6,7 +6,7 @@ import {
   showSelectorWindow,
   getAutostart,
   setAutostart,
-  setScreenshotShortcut,
+  initScreenshotShortcut,
 } from "../ipc/bridge";
 import { DEFAULT_SCREENSHOT_SHORTCUT, shortcutLabel, useSettingsStore } from "../store/settingsStore";
 
@@ -34,15 +34,15 @@ export default function MainApp() {
     // Reflect current autostart state.
     getAutostart().then(setAutostartState).catch(() => {});
 
-    // Swap the startup default (F1) for the user's persisted custom shortcut,
-    // if any. Rust registers F1 at startup, so this is an incremental swap
-    // that only fires when the user actually changed the key.
+    // Register the screenshot shortcut. Rust registers nothing at startup, so
+    // the main window always invokes init with the persisted key (default F1).
+    // This is the single registration path; later changes go through
+    // setScreenshotShortcut (in the shortcut-settings window).
     const stored = useSettingsStore.getState().settings.screenshotShortcut;
-    if (stored && stored !== DEFAULT_SCREENSHOT_SHORTCUT) {
-      void setScreenshotShortcut(stored).catch((err: unknown) => {
-        console.warn("Failed to apply persisted shortcut at startup", err);
-      });
-    }
+    const initialKey = stored || DEFAULT_SCREENSHOT_SHORTCUT;
+    void initScreenshotShortcut(initialKey).catch((err: unknown) => {
+      console.warn("Failed to init screenshot shortcut", err);
+    });
 
     const unlisten = onScreenshotTriggered(() => {
       showSelectorWindow();
