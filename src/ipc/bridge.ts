@@ -43,12 +43,13 @@ export async function setScreenshotShortcut(key: string): Promise<void> {
 }
 
 /**
- * First-time registration of the screenshot shortcut from the main window,
- * using the persisted key (defaults to "F1"). Rust registers nothing at
- * startup, so this is the single registration path and avoids id mismatches.
+ * First-time registration of the screenshot shortcut from the main window.
+ * Rust reads the persisted key from settings.json itself (defaults to "F1"),
+ * so no argument is needed. Rust registers nothing before this call, so this
+ * is the single registration path and avoids any id mismatch.
  */
-export async function initScreenshotShortcut(key: string): Promise<void> {
-  await invoke("init_screenshot_shortcut", { key });
+export async function initScreenshotShortcut(): Promise<void> {
+  await invoke("init_screenshot_shortcut");
 }
 
 // ---- Events ----
@@ -63,6 +64,16 @@ export function onScreenshotTriggered(cb: () => void): Promise<UnlistenFn> {
  */
 export function onAutostartChanged(cb: (enabled: boolean) => void): Promise<UnlistenFn> {
   return listen<boolean>("autostart-changed", (event) => cb(event.payload));
+}
+
+/**
+ * Fired from Rust when the screenshot shortcut is remapped in the
+ * shortcut-settings window, so the main window can refresh its mirror of the
+ * active key (persistence lives on the Rust side; this keeps the about-page
+ * copy in sync without it having to re-query).
+ */
+export function onShortcutChanged(cb: (key: string) => void): Promise<UnlistenFn> {
+  return listen<string>("shortcut-changed", (event) => cb(event.payload));
 }
 
 // ---- Window controls ----

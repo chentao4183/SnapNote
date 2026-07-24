@@ -1,5 +1,6 @@
 mod commands;
 mod migrate;
+mod settings;
 mod tray;
 
 use tauri_plugin_autostart::MacosLauncher;
@@ -41,7 +42,6 @@ pub fn run() {
             migrate::cleanup_legacy_autostart();
             Ok(())
         })
-        .manage(commands::shortcut::CurrentShortcut::default())
         .invoke_handler(tauri::generate_handler![
             greet,
             commands::screenshot::capture_screen,

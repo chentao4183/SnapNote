@@ -1,5 +1,5 @@
-import { useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { setScreenshotShortcut } from "../ipc/bridge";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { getScreenshotShortcut, setScreenshotShortcut } from "../ipc/bridge";
 import { shortcutLabel, useSettingsStore } from "../store/settingsStore";
 
 /**
@@ -20,11 +20,19 @@ function formatShortcut(code: string, mods: { ctrl: boolean; shift: boolean; alt
 
 export default function ShortcutSettingsWindow() {
   const shortcut = useSettingsStore((s) => s.settings.screenshotShortcut);
-  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const setSettings = useSettingsStore((s) => s.setSettings);
   // Draft shortcut while the user is recording a new key combo, plus status.
   const [draft, setDraft] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
+
+  // The source of truth lives on the Rust side (settings.json); read it fresh
+  // every time the window opens so we never show a stale value.
+  useEffect(() => {
+    void getScreenshotShortcut()
+      .then((key) => setSettings({ screenshotShortcut: key }))
+      .catch(() => {});
+  }, [setSettings]);
 
   function onKeyDownRecord(e: ReactKeyboardEvent) {
     // Ignore pure-modifier presses so the user can finish composing the combo.
@@ -40,7 +48,9 @@ export default function ShortcutSettingsWindow() {
     setShortcutError(null);
     try {
       await setScreenshotShortcut(draft);
-      updateSettings({ screenshotShortcut: draft });
+      // setScreenshotShortcut persists on the Rust side and emits
+      // 'shortcut-changed'; update our local mirror too for immediate display.
+      setSettings({ screenshotShortcut: draft });
       setDraft(null);
     } catch (err: unknown) {
       setShortcutError(typeof err === "string" ? err : "保存失败，请换一组组合键再试");

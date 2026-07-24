@@ -3,12 +3,14 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
   onScreenshotTriggered,
   onAutostartChanged,
+  onShortcutChanged,
   showSelectorWindow,
   getAutostart,
   setAutostart,
+  getScreenshotShortcut,
   initScreenshotShortcut,
 } from "../ipc/bridge";
-import { DEFAULT_SCREENSHOT_SHORTCUT, shortcutLabel, useSettingsStore } from "../store/settingsStore";
+import { shortcutLabel, useSettingsStore } from "../store/settingsStore";
 
 const FIRST_RUN_KEY = "stepmark.firstRunDone";
 const LEGACY_FIRST_RUN_KEY = "snapnote.firstRunDone";
@@ -34,14 +36,23 @@ export default function MainApp() {
     // Reflect current autostart state.
     getAutostart().then(setAutostartState).catch(() => {});
 
-    // Register the screenshot shortcut. Rust registers nothing at startup, so
-    // the main window always invokes init with the persisted key (default F1).
-    // This is the single registration path; later changes go through
-    // setScreenshotShortcut (in the shortcut-settings window).
-    const stored = useSettingsStore.getState().settings.screenshotShortcut;
-    const initialKey = stored || DEFAULT_SCREENSHOT_SHORTCUT;
-    void initScreenshotShortcut(initialKey).catch((err: unknown) => {
-      console.warn("Failed to init screenshot shortcut", err);
+    // Register the screenshot shortcut from Rust's persisted settings.json,
+    // then read the active value back so the about page shows the right key.
+    // Rust registers nothing at startup; this is the single registration path.
+    void (async () => {
+      try {
+        await initScreenshotShortcut();
+        const key = await getScreenshotShortcut();
+        useSettingsStore.getState().setSettings({ screenshotShortcut: key });
+      } catch (err) {
+        console.warn("Failed to init screenshot shortcut", err);
+      }
+    })();
+
+    // The shortcut-settings window persists changes on the Rust side; refresh
+    // our in-memory mirror when it notifies us.
+    const unlistenShortcut = onShortcutChanged((key) => {
+      useSettingsStore.getState().setSettings({ screenshotShortcut: key });
     });
 
     const unlisten = onScreenshotTriggered(() => {
@@ -54,6 +65,7 @@ export default function MainApp() {
     return () => {
       unlisten.then((fn) => fn());
       unlistenAutostart.then((fn) => fn());
+      unlistenShortcut.then((fn) => fn());
     };
   }, []);
 
