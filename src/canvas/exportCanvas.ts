@@ -14,9 +14,30 @@ export function setEditorStage(stage: Konva.Stage | null) {
 }
 
 /**
+ * Load an HTMLImageElement from a data URL, resolving once decoded.
+ */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("failed to decode source image"));
+    img.src = src;
+  });
+}
+
+/**
  * Produce a data URL for just the selected region (background + annotations),
- * not the whole window-sized stage. Without this crop, toDataURL captures the
- * fullscreen stage and the exported image is mostly empty/transparent.
+ * not the whole window-sized stage.
+ *
+ * DPI-correct composition: the screenshot is captured at PHYSICAL pixels
+ * (xcap native resolution), but cropRegion is in LOGICAL (client) px. The old
+ * implementation called stageRef.toDataURL on the Konva backing store, which
+ * had already been resampled under non-integer DPR (125%/150%) and produced
+ * blurry text in the export.
+ *
+ * Instead we crop the ORIGINAL screenshot at its physical pixels (zero
+ * resampling, pixel-perfect background) and overlay the annotation layer
+ * rasterized at the matching physical resolution.
  *
  * Exported so the pin-to-screen flow can reuse the same composed image that
  * save/copy produce.
@@ -25,19 +46,53 @@ export async function composeDataUrl(): Promise<string> {
   if (!stageRef) {
     throw new Error("editor stage not ready");
   }
+  const { sourceImage, cropRegion } = useEditorStore.getState();
+  const { x, y, width, height } = cropRegion;
+  if (width < 1 || height < 1) {
+    throw new Error("裁剪区域为空");
+  }
+
+  // Temporarily deselect so selection handles don't appear in the rasterized
+  // annotation layer. Restored in finally.
   const selectedId = useEditorStore.getState().selectedId;
   useEditorStore.getState().selectAnnotation(null);
   await nextFrame();
   try {
-    const { x, y, width, height } = useEditorStore.getState().cropRegion;
-    return stageRef.toDataURL({
+    // Scale from logical crop coords to the source image's physical pixels.
+    // Derive from the image's natural size vs the logical window width rather
+    // than window.devicePixelRatio, so mixed-DPI multi-monitor captures
+    // (where the source physical width != innerWidth * DPR) still align.
+    const orig = await loadImage(sourceImage);
+    const scale = orig.naturalWidth / window.innerWidth;
+    const sx = Math.round(x * scale);
+    const sy = Math.round(y * scale);
+    const sw = Math.round(width * scale);
+    const sh = Math.round(height * scale);
+
+    // 1. Background: blit the original physical pixels 1:1, no resampling.
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(orig, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    // 2. Annotation layer: rasterize at the same physical resolution so vector
+    //    shapes stay crisp and align with the background. stageRef.toDataURL
+    //    multiplies the logical crop rect by pixelRatio = scale.
+    const annoDataUrl = stageRef.toDataURL({
       x,
       y,
       width,
       height,
-      pixelRatio: window.devicePixelRatio || 1,
+      pixelRatio: scale,
       mimeType: "image/png",
     });
+    const annoImg = await loadImage(annoDataUrl);
+    // Annotations are vector and may contain transparency; draw on top.
+    ctx.drawImage(annoImg, 0, 0, sw, sh);
+
+    return canvas.toDataURL("image/png");
   } finally {
     useEditorStore.getState().selectAnnotation(selectedId);
   }
