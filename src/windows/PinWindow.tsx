@@ -35,18 +35,30 @@ export default function PinWindow() {
   // We register the listener BEFORE emitting pin-ready, so by the time the
   // creator (createPinWindow in bridge.ts) sees our ready signal and sends
   // pin-load, this listener is guaranteed to be subscribed.
+  //
+  // The event name stays the plain "pin-load" (unchanged from baseline, so
+  // emit/emitTo wiring is untouched), but the listener's target is scoped
+  // to THIS window's label. Without the target option the listener would
+  // default to {kind:'Any'} and pick up every pin window's pin-load — so a
+  // second screenshot/pin would overwrite the image in the first still-open
+  // pin. Scoping the target closes that hole while leaving the event name
+  // identical on both ends.
   useEffect(() => {
     let cancelled = false;
-    const unlistenPromise = listen<PinLoadPayload>("pin-load", (event) => {
-      if (cancelled) return;
-      baseSizeRef.current = { width: event.payload.width, height: event.payload.height };
-      scaleRef.current = 1;
-      setPayload(event.payload);
-    });
+    const label = getCurrentWebviewWindow().label;
+    const unlistenPromise = listen<PinLoadPayload>(
+      "pin-load",
+      (event) => {
+        if (cancelled) return;
+        baseSizeRef.current = { width: event.payload.width, height: event.payload.height };
+        scaleRef.current = 1;
+        setPayload(event.payload);
+      },
+      { target: label },
+    );
     // Signal readiness so the creator emits pin-load. The event name is
     // scoped to this window's label to avoid cross-talk between pins.
     void (async () => {
-      const label = getCurrentWebviewWindow().label;
       await emit(`pin-ready-${label}`);
     })();
     return () => {
