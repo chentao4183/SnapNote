@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Rect } from "react-konva";
 import type Konva from "konva";
 import useImage from "use-image";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -158,32 +158,50 @@ export default function SelectorWindow() {
 
   // ---- selecting mode ----
   return (
-    <Stage width={size.width} height={size.height} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
-      <Layer>
-        <KonvaImage image={image} x={0} y={0} width={size.width} height={size.height} listening={false} />
-        {/* Dim fill MUST match SelectionMaskRects below and CropOverlay.tsx
-            so the mask color doesn't shift when the user releases the mouse
-            and enters the editor. */}
-        {selection ? (
-          <SelectionMaskRects stageWidth={size.width} stageHeight={size.height} selection={selection} />
-        ) : (
-          <Rect x={0} y={0} width={size.width} height={size.height} fill="rgba(0,0,0,0.45)" listening={false} />
-        )}
-        {selection && (
-          <Rect
-            x={selection.x}
-            y={selection.y}
-            width={selection.width}
-            height={selection.height}
-            fill="rgba(0,0,0,0)"
-            stroke="#ff4757"
-            strokeWidth={2}
-            dash={[6, 3]}
-            listening={false}
-          />
-        )}
-      </Layer>
-    </Stage>
+    <div style={{ position: "relative", width: size.width, height: size.height }}>
+      {/* Background screenshot as a DOM <img> for crisp text under non-integer
+          DPR (see EditorStage.tsx for the rationale). Pointer events pass
+          through to the Konva Stage below. */}
+      <img
+        src={bg}
+        alt=""
+        draggable={false}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          userSelect: "none",
+          imageRendering: "-webkit-optimize-contrast",
+        }}
+      />
+      <Stage width={size.width} height={size.height} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
+        <Layer>
+          {/* Dim fill MUST match SelectionMaskRects below and CropOverlay.tsx
+              so the mask color doesn't shift when the user releases the mouse
+              and enters the editor. */}
+          {selection ? (
+            <SelectionMaskRects stageWidth={size.width} stageHeight={size.height} selection={selection} />
+          ) : (
+            <Rect x={0} y={0} width={size.width} height={size.height} fill="rgba(0,0,0,0.45)" listening={false} />
+          )}
+          {selection && (
+            <Rect
+              x={selection.x}
+              y={selection.y}
+              width={selection.width}
+              height={selection.height}
+              fill="rgba(0,0,0,0)"
+              stroke="#ff4757"
+              strokeWidth={2}
+              dash={[6, 3]}
+              listening={false}
+            />
+          )}
+        </Layer>
+      </Stage>
+    </div>
   );
 }
 
