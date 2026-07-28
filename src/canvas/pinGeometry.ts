@@ -1,9 +1,9 @@
 /**
  * Pure geometry helpers for the pin-to-screen window.
  *
- * Pin windows keep the captured image at a 1:1 logical size initially and
- * scale uniformly around the window center on wheel/handle resize. These
- * functions are pure so they can be unit-tested without Konva or Tauri.
+ * Pin windows keep the captured image at a 1:1 physical-pixel size initially.
+ * Browser pointer coordinates are logical pixels, while Tauri window sizes can
+ * be set in physical pixels. These helpers keep those conversions explicit.
  */
 
 export const MIN_SCALE = 0.1;
@@ -19,6 +19,29 @@ export interface Rect {
 /** Clamp a scale factor into the supported [MIN_SCALE, MAX_SCALE] range. */
 export function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+}
+
+/** Return the integer physical window size for a raster image at `scale`. */
+export function scaledPhysicalSize(
+  baseSize: { width: number; height: number },
+  scale: number,
+): { width: number; height: number } {
+  return {
+    width: Math.max(1, Math.round(baseSize.width * scale)),
+    height: Math.max(1, Math.round(baseSize.height * scale)),
+  };
+}
+
+/** Convert a physical-pixel size to browser/CSS logical pixels. */
+export function physicalToLogicalSize(
+  size: { width: number; height: number },
+  scaleFactor: number,
+): { width: number; height: number } {
+  const factor = Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
+  return {
+    width: size.width / factor,
+    height: size.height / factor,
+  };
 }
 
 /**

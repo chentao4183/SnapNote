@@ -129,39 +129,38 @@ export async function exportToFile(format: "png" | "jpg"): Promise<boolean> {
  * The pin appears at the screenshot's original screen location, so it
  * visually "lands back where the selection was" — the same UX as Snipaste.
  *
- * Position math: cropRegion is in the editor window's client-area logical
- * coordinates. To land on the right screen pixel we add the editor window's
- * own screen position (innerPosition, in physical px) converted to logical,
- * so the pin aligns even if the selector window isn't at screen (0,0) —
- * which can happen under DPI scaling or with multi-monitor setups.
+ * Position and size are passed to Tauri in PHYSICAL pixels. The PNG's natural
+ * dimensions are the source of truth, so its default 1:1 pin never gets
+ * resampled merely because Windows uses 125%/150% scaling.
  */
 export async function pinToScreen(): Promise<void> {
   const dataUrl = await composeDataUrl();
+  const image = await loadImage(dataUrl);
   const { x, y, width, height } = useEditorStore.getState().cropRegion;
   if (width < 1 || height < 1) {
     throw new Error("裁剪区域为空");
   }
 
-  // The editor currently always runs inside the selector window, so the
-  // current webview is the selector. Read its client-area origin in logical
-  // screen px and offset the crop region by it.
+  // cropRegion uses browser logical pixels. Convert only the crop offset to
+  // physical pixels, then add it to the window's already-physical origin.
   let originX = 0;
   let originY = 0;
+  let factor = window.devicePixelRatio || 1;
   try {
     const win = getCurrentWebviewWindow();
-    const [innerPos, factor] = await Promise.all([
+    const [innerPos, windowFactor] = await Promise.all([
       win.innerPosition(),
       win.scaleFactor().catch(() => 1),
     ]);
-    // innerPosition is physical px; convert to logical to match cropRegion.
-    originX = innerPos.x / factor;
-    originY = innerPos.y / factor;
+    factor = windowFactor;
+    originX = innerPos.x;
+    originY = innerPos.y;
   } catch {
     // Fallback: assume the editor window is at screen (0,0).
   }
 
-  await createPinWindow(dataUrl, Math.round(width), Math.round(height), {
-    x: Math.round(originX + x),
-    y: Math.round(originY + y),
+  await createPinWindow(dataUrl, image.naturalWidth, image.naturalHeight, {
+    x: Math.round(originX + x * factor),
+    y: Math.round(originY + y * factor),
   });
 }

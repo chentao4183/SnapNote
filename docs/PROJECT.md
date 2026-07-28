@@ -139,8 +139,9 @@ StepMark 当前按 **V1.0 终结版 MVP** 维护。核心截图批注闭环已�
 
 - 贴图复用 `composeDataUrl()` 产出裁剪 + 标注后的 PNG data URL(与复制/保存同一通路)。
 - 贴图窗口通过 Tauri 前端 `new WebviewWindow(label, options)` 动态创建,无需新增 Rust command。
-- 跨窗口通过 `emitTo(label, "pin-load", { dataUrl, width, height })` 传图,贴图窗口监听后渲染 `<img>`。
+- 跨窗口通过 `emitTo(label, "pin-load", { dataUrl, pixelWidth, pixelHeight })` 传图,贴图窗口监听后渲染 `<img>`。
 - 缩放几何是纯函数,落在 `src/canvas/pinGeometry.ts`,由 Vitest 覆盖。
+- DPI 清晰度以 PNG 的物理像素宽高为真值:贴图默认用 `PhysicalSize` 保持 1:1 像素映射,边框作为覆盖层而不占图片内容区;跨不同缩放比例的屏幕时监听 DPI 变化并重新应用物理尺寸,避免浏览器隐式重采样。
 
 ---
 

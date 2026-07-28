@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emitTo, type UnlistenFn } from "@tauri-apps/api/event";
-import { currentMonitor, LogicalPosition } from "@tauri-apps/api/window";
+import { currentMonitor, PhysicalPosition, PhysicalSize } from "@tauri-apps/api/window";
 import { WebviewWindow, getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 // ---- Commands ----
@@ -116,8 +116,8 @@ let pinCounter = 0;
 
 export interface PinLoadPayload {
   dataUrl: string;
-  width: number;
-  height: number;
+  pixelWidth: number;
+  pixelHeight: number;
 }
 
 /**
@@ -125,10 +125,9 @@ export interface PinLoadPayload {
  * the given image data URL at 1:1 scale. Each call opens a fresh window, so
  * multiple pins can coexist on screen.
  *
- * `position` is the desired top-left in screen coordinates (typically the
- * crop region's origin, so the pin lands back where the screenshot was
- * taken). If omitted, the pin is centered on the primary monitor. In either
- * case the position is clamped to keep the whole window on-screen.
+ * `pixelWidth`, `pixelHeight`, and `position` are PHYSICAL screen pixels.
+ * Using the PNG's physical dimensions as the window's inner size guarantees
+ * a 1:1 raster mapping regardless of the destination monitor's DPI factor.
  *
  * Two-step handshake to avoid both "no image" and "blank flash" bugs:
  *   1. Wait for `pin-ready-{label}` (PinWindow has registered its pin-load
@@ -140,22 +139,26 @@ export interface PinLoadPayload {
  */
 export async function createPinWindow(
   dataUrl: string,
-  width: number,
-  height: number,
+  pixelWidth: number,
+  pixelHeight: number,
   position?: { x: number; y: number },
 ): Promise<WebviewWindow> {
   const label = `pin-${pinCounter++}`;
 
-  // Clamp the requested position so the whole window stays on the screen.
-  const { x, y } = await clampPositionToScreen(position, width, height);
+  // Monitor geometry is physical. Keep all clamping in that unit.
+  const monitor = await currentMonitor().catch(() => null);
+  const { x, y } = clampPhysicalPositionToScreen(position, pixelWidth, pixelHeight, monitor);
+  const initialFactor = monitor?.scaleFactor || window.devicePixelRatio || 1;
 
+  // WindowOptions accept logical units only. These are merely hidden-window
+  // bootstrap values; after the webview is ready we set exact physical bounds.
   const win = new WebviewWindow(label, {
     url: "pin.html",
     title: "StepMark Pin",
-    width,
-    height,
-    x,
-    y,
+    width: pixelWidth / initialFactor,
+    height: pixelHeight / initialFactor,
+    x: x / initialFactor,
+    y: y / initialFactor,
     decorations: false,
     resizable: false,
     alwaysOnTop: true,
@@ -174,7 +177,16 @@ export async function createPinWindow(
   //      instead of briefly showing a blank transparent rectangle.
   await waitForEvent(`pin-ready-${label}`, 5000, "pin window did not become ready in time");
 
-  await emitTo(label, "pin-load", { dataUrl, width, height } satisfies PinLoadPayload);
+  // Correct the hidden window using unambiguous physical units before its
+  // image is decoded or shown.
+  await win.setSize(new PhysicalSize(pixelWidth, pixelHeight));
+  await win.setPosition(new PhysicalPosition(x, y));
+
+  await emitTo(label, "pin-load", {
+    dataUrl,
+    pixelWidth,
+    pixelHeight,
+  } satisfies PinLoadPayload);
 
   // Don't let a decode hang block the pin forever — fall back to showing the
   // window after 3s even if pin-rendered never arrives.
@@ -186,13 +198,12 @@ export async function createPinWindow(
   // (visible) top-left lands exactly at (x, y). Done before show() so the
   // user never sees the offset version.
   try {
-    const factor = await win.scaleFactor().catch(() => 1);
     const outer = await win.outerPosition();
     const inner = await win.innerPosition();
-    const dxLogical = (inner.x - outer.x) / factor;
-    const dyLogical = (inner.y - outer.y) / factor;
-    if (Math.abs(dxLogical) > 0.5 || Math.abs(dyLogical) > 0.5) {
-      await win.setPosition(new LogicalPosition(x - dxLogical, y - dyLogical));
+    const dx = inner.x - outer.x;
+    const dy = inner.y - outer.y;
+    if (dx !== 0 || dy !== 0) {
+      await win.setPosition(new PhysicalPosition(x - dx, y - dy));
     }
   } catch {
     /* keep default position */
@@ -240,24 +251,18 @@ function waitForEvent(
  * current monitor's work area. If `position` is null, the window is centered
  * on the monitor instead.
  */
-async function clampPositionToScreen(
+function clampPhysicalPositionToScreen(
   position: { x: number; y: number } | undefined,
   width: number,
   height: number,
-): Promise<{ x: number; y: number }> {
-  type Monitor = { size: { width: number; height: number }; position: { x: number; y: number } };
-  let monitor: Monitor | null = null;
-  try {
-    const current = await currentMonitor();
-    monitor = current && current.position && current.size ? (current as Monitor) : null;
-  } catch {
-    monitor = null;
-  }
-
-  const availW = monitor?.size.width ?? window.screen.availWidth;
-  const availH = monitor?.size.height ?? window.screen.availHeight;
-  const baseX = monitor?.position.x ?? 0;
-  const baseY = monitor?.position.y ?? 0;
+  monitor: Awaited<ReturnType<typeof currentMonitor>>,
+): { x: number; y: number } {
+  const fallbackFactor = window.devicePixelRatio || 1;
+  const workArea = monitor?.workArea;
+  const availW = workArea?.size.width ?? window.screen.availWidth * fallbackFactor;
+  const availH = workArea?.size.height ?? window.screen.availHeight * fallbackFactor;
+  const baseX = workArea?.position.x ?? 0;
+  const baseY = workArea?.position.y ?? 0;
 
   let x: number;
   let y: number;

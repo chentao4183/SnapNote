@@ -3,6 +3,8 @@ import {
   MIN_SCALE,
   MAX_SCALE,
   clampScale,
+  physicalToLogicalSize,
+  scaledPhysicalSize,
   scaleAroundCenter,
   scaleFromCornerDrag,
 } from "./pinGeometry";
@@ -21,6 +23,36 @@ describe("clampScale", () => {
   it("clamps above the maximum", () => {
     expect(clampScale(10)).toBe(MAX_SCALE);
     expect(clampScale(100)).toBe(MAX_SCALE);
+  });
+});
+
+describe("pin pixel sizing", () => {
+  it("keeps the source raster 1:1 at scale 1", () => {
+    expect(scaledPhysicalSize({ width: 501, height: 301 }, 1)).toEqual({
+      width: 501,
+      height: 301,
+    });
+  });
+
+  it("rounds scaled window dimensions to whole physical pixels", () => {
+    expect(scaledPhysicalSize({ width: 501, height: 301 }, 1.25)).toEqual({
+      width: 626,
+      height: 376,
+    });
+  });
+
+  it("converts physical image size to CSS size for mixed-DPI monitors", () => {
+    expect(physicalToLogicalSize({ width: 600, height: 300 }, 1.5)).toEqual({
+      width: 400,
+      height: 200,
+    });
+  });
+
+  it("falls back safely for an invalid DPI factor", () => {
+    expect(physicalToLogicalSize({ width: 600, height: 300 }, 0)).toEqual({
+      width: 600,
+      height: 300,
+    });
   });
 });
 

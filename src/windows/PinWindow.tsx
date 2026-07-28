@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
+import { LogicalPosition, PhysicalSize } from "@tauri-apps/api/window";
 import { copyImageToClipboard, saveImage, type PinLoadPayload } from "../ipc/bridge";
-import { clampScale, scaleFromCornerDrag } from "../canvas/pinGeometry";
+import {
+  clampScale,
+  physicalToLogicalSize,
+  scaledPhysicalSize,
+  scaleFromCornerDrag,
+} from "../canvas/pinGeometry";
 
 /**
  * A Snipaste-style pinned screenshot window: borderless, always-on-top,
@@ -24,11 +29,9 @@ export default function PinWindow() {
   const [hovered, setHovered] = useState(false);
   const [closing, setClosing] = useState(false);
 
-  // scale is relative to the image's 1:1 logical size. We track it here and
-  // mirror it into the physical window size via setSize + setPosition so the
-  // OS-level window bounds follow our scale exactly.
+  // The PNG's natural PHYSICAL pixel size is the invariant at scale 1.
   const scaleRef = useRef(1);
-  const baseSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const basePixelSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const dataUrl = payload?.dataUrl ?? "";
 
   // Receive the payload from the editor window.
@@ -50,7 +53,10 @@ export default function PinWindow() {
       "pin-load",
       (event) => {
         if (cancelled) return;
-        baseSizeRef.current = { width: event.payload.width, height: event.payload.height };
+        basePixelSizeRef.current = {
+          width: event.payload.pixelWidth,
+          height: event.payload.pixelHeight,
+        };
         scaleRef.current = 1;
         setPayload(event.payload);
       },
@@ -67,32 +73,59 @@ export default function PinWindow() {
     };
   }, []);
 
-  // Scale factor is constant for a window's lifetime on a single monitor;
-  // cache it after the payload arrives so the per-wheel-tick resize doesn't
-  // pay an IPC round-trip for it. (Windows locks the factor at creation.)
+  // Pointer coordinates are logical, so corner dragging needs the current
+  // monitor factor. Unlike the previous implementation, this is updated when
+  // the pin crosses onto a monitor with different Windows scaling.
   const scaleFactorRef = useRef(1);
   useEffect(() => {
     if (!payload) return;
-    void getCurrentWebviewWindow()
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    const win = getCurrentWebviewWindow();
+    void win
       .scaleFactor()
       .then((f) => {
-        scaleFactorRef.current = f;
+        if (!disposed) scaleFactorRef.current = f;
       })
       .catch(() => {
         /* keep default 1 */
       });
+    void win
+      .onScaleChanged(({ payload: event }) => {
+        scaleFactorRef.current = event.scaleFactor;
+        // Windows suggests a new physical size when DPI changes. Reassert the
+        // raster-derived size so a cross-monitor move stays pixel-perfect.
+        void applyScale.current();
+      })
+      .then((fn) => {
+        if (disposed) fn();
+        else unlisten = fn;
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
   }, [payload]);
 
   // Signal the creator once the <img> has actually decoded, so it can show
   // the window only after pixels are on screen — otherwise win.show() races
   // ahead of the decode and the pin briefly appears blank.
   const renderedRef = useRef(false);
-  function onImageLoad() {
+  function onImageLoad(event: SyntheticEvent<HTMLImageElement>) {
     if (renderedRef.current) return;
     renderedRef.current = true;
+    // Trust the decoded PNG if metadata and payload ever disagree.
+    basePixelSizeRef.current = {
+      width: event.currentTarget.naturalWidth,
+      height: event.currentTarget.naturalHeight,
+    };
     void (async () => {
-      const label = getCurrentWebviewWindow().label;
-      await emit(`pin-rendered-${label}`);
+      try {
+        await applyScale.current();
+      } finally {
+        const label = getCurrentWebviewWindow().label;
+        await emit(`pin-rendered-${label}`);
+      }
     })();
   }
 
@@ -105,10 +138,8 @@ export default function PinWindow() {
   const applyScale = useRef<() => Promise<void>>(async () => {});
   applyScale.current = async () => {
     const win = getCurrentWebviewWindow();
-    const base = baseSizeRef.current;
-    const w = Math.max(1, Math.round(base.width * scaleRef.current));
-    const h = Math.max(1, Math.round(base.height * scaleRef.current));
-    await win.setSize(new LogicalSize(w, h));
+    const size = scaledPhysicalSize(basePixelSizeRef.current, scaleRef.current);
+    await win.setSize(new PhysicalSize(size.width, size.height));
   };
 
   // Wheel scaling, rAF-throttled so rapid wheel events coalesce.
@@ -164,8 +195,12 @@ export default function PinWindow() {
   function onCornerPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     const drag = cornerDragRef.current;
     if (!drag) return;
+    const baseLogicalSize = physicalToLogicalSize(
+      basePixelSizeRef.current,
+      scaleFactorRef.current,
+    );
     const next = scaleFromCornerDrag(
-      baseSizeRef.current,
+      baseLogicalSize,
       drag.startPointer,
       { x: e.clientX, y: e.clientY },
       drag.startScale,
@@ -251,7 +286,7 @@ export default function PinWindow() {
 
   return (
     <div
-      style={{ ...rootStyle, border: `1px solid ${borderColor}` }}
+      style={rootStyle}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
     >
@@ -263,6 +298,9 @@ export default function PinWindow() {
         onLoad={onImageLoad}
         onPointerDown={onImagePointerDown}
       />
+      {/* Overlay frame: unlike a real border it never shrinks the image's
+          content box, so the raster remains exactly 1:1. */}
+      <div style={{ ...frameStyle, borderColor }} />
       {/* Close button (top-right). Hidden until hover. */}
       <button
         type="button"
@@ -302,12 +340,23 @@ const rootStyle: CSSProperties = {
 };
 
 const imageStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
   display: "block",
-  width: "100%",
-  height: "100%",
+  width: "100vw",
+  height: "100vh",
+  imageRendering: "auto",
   // The image is the drag handle, so it needs an explicit grab cursor.
   cursor: "grab",
   pointerEvents: "auto",
+};
+
+const frameStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  borderWidth: 1,
+  borderStyle: "solid",
+  pointerEvents: "none",
 };
 
 const closeBtnStyle: CSSProperties = {
