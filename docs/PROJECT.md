@@ -341,13 +341,13 @@ npm run tauri build
 
 - 托盘「设置 → 快捷键」打开独立的快捷键设置窗口,录入组合键(修饰键 + 主键)。
 - 快捷键持久化在 Rust 端 `settings.json`(不放前端 localStorage,因为 Tauri 在 Windows 上各 webview 窗口的 localStorage 互相隔离,跨窗口不可靠)。
-- 启动时 Rust 不预注册任何快捷键,由 main 窗口加载后调 `init_screenshot_shortcut` 注册持久化的键(默认 F1),保证初始注册和改键走同一条字符串路径,避免 id 错位导致旧快捷键残留。
+- 启动时由 Rust `setup` 读取并注册持久化的键(默认 F1),不依赖隐藏 main WebView 的加载时机;初始注册和改键仍统一传字符串,避免 id 错位导致旧快捷键残留。启动时若旧进程短暂占用按键会自动重试。
 - 改键走 `set_screenshot_shortcut`:`unregister(旧键)` → `register(新键)` → 写盘 → emit `shortcut-changed` 通知其它窗口刷新镜像。
 - 托盘菜单「截图 (...)」文字随当前快捷键实时更新。
 
 实现踩坑(已修复,记录于此避免重蹈):
 
-- **旧快捷键改键后仍可用**:根因是启动用 `Shortcut::new(None, Code::F1)` 对象注册、改键用字符串注册,两条路径标识不一致。修法:启动不预注册,统一由字符串路径注册。
+- **旧快捷键改键后仍可用**:根因是启动曾用 `Shortcut::new(None, Code::F1)` 对象注册、改键用字符串注册,两条路径标识不一致。修法:Rust 启动注册和改键都统一使用字符串路径。
 - **多窗口快捷键不一致 / 重启丢失**:根因是前端 localStorage 在 Windows 上按 webview 窗口分区隔离。修法:持久化搬到 Rust 端 `settings.json`。
 
 ### 10.5 持久化层约定

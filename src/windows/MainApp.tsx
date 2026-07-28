@@ -8,7 +8,6 @@ import {
   getAutostart,
   setAutostart,
   getScreenshotShortcut,
-  initScreenshotShortcut,
 } from "../ipc/bridge";
 import { shortcutLabel, useSettingsStore } from "../store/settingsStore";
 
@@ -36,18 +35,13 @@ export default function MainApp() {
     // Reflect current autostart state.
     getAutostart().then(setAutostartState).catch(() => {});
 
-    // Register the screenshot shortcut from Rust's persisted settings.json,
-    // then read the active value back so the about page shows the right key.
-    // Rust registers nothing at startup; this is the single registration path.
-    void (async () => {
-      try {
-        await initScreenshotShortcut();
-        const key = await getScreenshotShortcut();
+    // Rust registers the persisted shortcut during application setup. The
+    // hidden main WebView only mirrors the active value for display.
+    getScreenshotShortcut()
+      .then((key) => {
         useSettingsStore.getState().setSettings({ screenshotShortcut: key });
-      } catch (err) {
-        console.warn("Failed to init screenshot shortcut", err);
-      }
-    })();
+      })
+      .catch(() => {});
 
     // The shortcut-settings window persists changes on the Rust side; refresh
     // our in-memory mirror when it notifies us.

@@ -14,11 +14,6 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // No shortcut is registered here at startup. The main window invokes
-    // commands::shortcut::init_screenshot_shortcut once it loads, passing the
-    // user's persisted shortcut (defaulting to F1). Registering in exactly one
-    // place — and always from a string — avoids any id mismatch between the
-    // startup registration and a later re-registration.
     let global_shortcut = ShortcutBuilder::new()
         .with_handler(|app, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
@@ -38,6 +33,7 @@ pub fn run() {
         ))
         .setup(move |app| {
             tray::setup_tray(app.handle())?;
+            commands::shortcut::register_screenshot_shortcut_on_startup(app.handle().clone());
             // One-time cleanup: remove the stale autostart entry from the pre-rename build.
             migrate::cleanup_legacy_autostart();
             Ok(())
@@ -51,7 +47,6 @@ pub fn run() {
             commands::autostart::set_autostart,
             commands::shortcut::get_screenshot_shortcut,
             commands::shortcut::set_screenshot_shortcut,
-            commands::shortcut::init_screenshot_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
