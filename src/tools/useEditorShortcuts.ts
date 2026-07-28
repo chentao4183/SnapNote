@@ -4,6 +4,7 @@ import { useEditorStore } from "../store/editorStore";
 interface Options {
   onExit?: () => void;
   onSave?: () => void;
+  onCopy?: () => void;
   onPin?: () => void;
 }
 
@@ -13,10 +14,11 @@ interface Options {
  *   Ctrl+Shift+Z    -> redo
  *   Ctrl+Y          -> redo
  *   Ctrl+S          -> save (handled by caller)
+ *   Ctrl+C          -> copy to clipboard (handled by caller)
  *   P               -> pin to screen (handled by caller)
  *   Esc             -> exit the editor window (handled by caller)
  */
-export function useEditorShortcuts({ onExit, onSave, onPin }: Options) {
+export function useEditorShortcuts({ onExit, onSave, onCopy, onPin }: Options) {
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
 
@@ -36,6 +38,9 @@ export function useEditorShortcuts({ onExit, onSave, onPin }: Options) {
       } else if (ctrl && e.key.toLowerCase() === "s") {
         e.preventDefault();
         onSave?.();
+      } else if (ctrl && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        onCopy?.();
       } else if (!ctrl && e.key.toLowerCase() === "p") {
         e.preventDefault();
         onPin?.();
@@ -45,5 +50,5 @@ export function useEditorShortcuts({ onExit, onSave, onPin }: Options) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo, onExit, onSave, onPin]);
+  }, [undo, redo, onExit, onSave, onCopy, onPin]);
 }

@@ -2,7 +2,7 @@ import { useActiveTool } from "../tools";
 import { useSelectionTool } from "../tools/useSelectionTool";
 import { useEditorShortcuts } from "../tools/useEditorShortcuts";
 import { hideCurrentWindow } from "../ipc/bridge";
-import { exportToFile, pinToScreen } from "../canvas/exportCanvas";
+import { exportToClipboard, exportToFile, pinToScreen } from "../canvas/exportCanvas";
 import EditorStage from "../canvas/EditorStage";
 import Toolbar from "./Toolbar";
 import TextInputOverlay from "./TextInputOverlay";
@@ -28,6 +28,12 @@ export default function EditorView({ onExit }: Props) {
     onExit: closeEditor,
     onSave: () => {
       void exportToFile("png");
+    },
+    onCopy: () => {
+      // Mirror the toolbar "copy" button: copy the composed screenshot, then
+      // close the editor on success. On failure exportToClipboard throws and
+      // the window stays open so the user can retry.
+      void exportToClipboard().then(() => closeEditor());
     },
     onPin: () => {
       // No toolbar pointer available on keyboard trigger; let the pin fall
