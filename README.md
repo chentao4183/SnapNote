@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 # StepMark
@@ -111,6 +113,7 @@ src/
 ├── geometry/       # 纯几何算法和单测
 ├── numbering/      # 自动编号应用逻辑
 ├── store/          # Zustand store
+├── style/          # 工具样式映射
 ├── ipc/            # Tauri invoke/listen 封装
 ├── types/          # Annotation / Tool / Style 类型
 └── components/     # Toolbar / StylePanel / TextInputOverlay 等组件
